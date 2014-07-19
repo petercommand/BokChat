@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
 #ifndef CONNECT_H
@@ -20,6 +21,7 @@
 #endif
 #include <signal.h>
 #include <errno.h>
+#include <ctype.h>
 #define SERVER_NAME "rlhsu.cukcake"
 int get_cmd(int socket, char* buf, char* cmd, int* timeout);
 void client_connect_loop(int* sockfd_p);
@@ -35,6 +37,7 @@ ssize_t irc_send(int sockfd, const void *buf, size_t len, int flags);
 void trim_msg(char* buf, size_t len);
 int join_user_to_global_list(user_info* user_info);
 int process_cmd(user_cmd cmd_info, user_info* user_info);
+int process_cmd_nick_init(user_cmd cmd_info, user_info* user_inf);
 void reverse_dns(user_info* user_inf);
 void send_message_by_type(user_info* user_inf, const char* msg_type, char* msg_body);
 void send_message_by_number(int num, user_info* user_inf, char* msg_body);
@@ -123,7 +126,7 @@ void client_connect(user_info* user_inf){
   char* msg = (char *)malloc(MAX_BUFFER);
   char* msg2 = (char *)malloc(MAX_BUFFER);
   int get_cmd_num;
-  if((buf == NULL) || (cmd == NULL) || (msg == NULL)){
+  if((buf == NULL) || (cmd == NULL) || (msg == NULL) || (msg2 == NULL)){
     goto error;
   }
   memset(buf, 0, MAX_BUFFER);
@@ -151,7 +154,8 @@ void client_connect(user_info* user_inf){
       continue;
     }
 
-    user_cmd cmd_info = parse_cmd(cmd);      
+    user_cmd cmd_info = parse_cmd(cmd);   
+    printf("cmd_info->cmd:%s\ncmd_info->args:%s\n", cmd_info.cmd, cmd_info.args);   
     process_cmd(cmd_info, user_inf); 
  
  
@@ -262,16 +266,8 @@ int valid_channel(char* input){
   if(input[0] != '#'){
     return 0;
   }
-  if(((input[1] >= 'a') && (input[1] <= 'z')) == 0){
-    return 0;
-  }
-  if(((input[1] >= 'a') && (input[1] <= 'Z')) == 0){
-    return 0;
-  }
-  if((input[1] == '_') || (input[1] == '-') || (input[1] == '#') || (input[1] == '.')){
-    return 0;
-  }
-  for(i=0;i<len;i++){
+
+  for(i=1;i<len;i++){
     if((input[i] >= 'a') && (input[i] <= 'z')){
       continue;
     }
@@ -348,18 +344,14 @@ int init_user(user_info* user_inf, char* buf){
       printf("cmd_info->cmd:%s\ncmd_info->args:%s\n", cmd_info.cmd, cmd_info.args);
       /*put user into global user list after first nick command as we find user by nick */
       if(strcmp(cmd_info.cmd, "NICK") == 0){
-	pthread_mutex_lock(&global_user_mutex);
-	if(process_cmd(cmd_info, user_inf) == 0){
+	if(process_cmd_nick_init(cmd_info, user_inf) == 0){
 	  nick = 1;
 	}
-	pthread_mutex_unlock(&global_user_mutex);
       }
       else if(strcmp(cmd_info.cmd, "USER") == 0){
-	pthread_mutex_lock(&global_user_mutex);
 	if(process_cmd(cmd_info, user_inf) == 0){
 	  user = 1;
 	}
-	pthread_mutex_unlock(&global_user_mutex);
       }
       else if(strcmp(cmd_info.cmd, "CAP") == 0){/* currently we are ignoring irc cap command, might implement it in the future */
 	continue;
@@ -410,18 +402,25 @@ void reverse_dns(user_info* user_inf){/*this function do reverse and forward dns
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_protocol = IPPROTO_TCP;
+  char* ip = inet_ntoa(((struct sockaddr_in *)&user_inf->client_addr)->sin_addr);
   char hostname[NI_MAXHOST];
   int i;
   send_message_by_type(user_inf, "NOTICE", "Looking up your hostname...\r\n");
   int res = getnameinfo(&client_addr, sizeof(client_addr), hostname, sizeof(hostname), NULL, 0, NI_NAMEREQD);
   if(res != 0){
     send_message_by_type(user_inf, "NOTICE", "No hostname found\r\n");
+    for(i=0;ip[i] != '\0';i++){
+      hostname[i] = ip[i];
+    }
     return;
   }
   /*forward dns*/
   res = getaddrinfo(hostname, NULL, &hints, &result);
   if(res != 0){
-     send_message_by_type(user_inf, "NOTICE", "No hostname found\r\n");
+    send_message_by_type(user_inf, "NOTICE", "No hostname found\r\n");
+    for(i=0;ip[i] != '\0';i++){
+      hostname[i] = ip[i];
+    }
     return;
   }
   for(rp = result; rp != NULL; rp = rp->ai_next){
@@ -469,6 +468,11 @@ user_cmd parse_cmd(char* cmd){
     }
     cmd_info.cmd[i] = '\0';
   }
+  for(i=0;cmd_info.cmd[i] != '\0';i++){
+    cmd_info.cmd[i] = toupper(cmd_info.cmd[i]);
+  }
+
+  
   return cmd_info;
 }
 
@@ -491,7 +495,7 @@ ssize_t irc_send(int sockfd, const void *buf, size_t len, int flags){
 }
 void send_message_to_user(user_info* user_inf, char* msg_body){
   pthread_mutex_lock(&user_inf->sock_mutex);
-  irc_send(user_inf->socket, msg_body, strlen(msg_body), 0);
+  irc_send(user_inf->socket, msg_body, strlen(msg_body), MSG_DONTWAIT);
   pthread_mutex_unlock(&user_inf->sock_mutex);
 
 
@@ -537,7 +541,10 @@ void send_message_by_number(int num, user_info* user_inf, char* msg_body){
 void motd(user_info* user_inf){
   char buf[MAX_BUFFER] = {0};
   int i;
-  char* motd[] = {"Welcome to rlhsu.cupcake.\r\n\r\n\r\n\r\n",
+  char* motd[] = {"Welcome to rlhsu.cupcake.\r\n",
+		  "\r\n",
+		  "\r\n",
+		  "\r\n",
 		  "Welcome to rlhsu\r\n",
 		  "By connecting to this server, you indicate that you\r\n",
 		  "have agreed the following terms set forth by the service owner\r\n",
@@ -547,7 +554,8 @@ void motd(user_info* user_inf){
 		  "STATED IN WRITING, THIS SERVICE IS PROVIDED \"AS IS\"\r\n",
 		  "WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,\r\n",
 		  "INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES FOR\r\n",
-		  "A PARTICULAR PURPOSE.\r\n\r\n",
+		  "A PARTICULAR PURPOSE.\r\n",
+		  "\r\n",
 		  "In accordance with ROC law, rlhsu has no tolerance for any\r\n",
 		  "activity which could be construed as:\r\n",
 		  "    *incitement to racial hatred\r\n",
@@ -556,14 +564,15 @@ void motd(user_info* user_inf){
 		  "     upon a person harassment, alarm or distress.\r\n",
 		  "    *any form of discrimination on the ground of\r\n",
 		  "     race, religion, gender, sexual preference or\r\n",
-		  "     other lifestyle choices\r\n\r\n",
+		  "     other lifestyle choices\r\n",
+		  "\r\n",
 		  "This server is the first project I ever\r\n",
 		  "made in the C language\r\n",
 		  "If there are any problem with my server,\r\n",
 		  "please email to me.\r\n",
 		  "May you have a good time on this server!\r\n"
   };
-  snprintf(buf, sizeof(buf), ":- %s Message of the Day\r\n", SERVER_NAME);
+  snprintf(buf, sizeof(buf), ":- %s Message of the Day -\r\n", SERVER_NAME);
   send_message_by_number(375, user_inf, buf);
   for(i=0;i<(sizeof(motd)/sizeof(char*));i++){
     send_message_by_type(user_inf, "MOTD", motd[i]);

@@ -33,3 +33,7 @@ extern channel_list* global_channel_list;
 extern user_list* global_user_list;
 extern pthread_mutex_t global_channel_mutex;
 extern pthread_mutex_t global_user_mutex;
+int add_node_to_user_list(user_list** user_list_ptr, user_info* user_inf);
+int add_node_to_channel_list(channel_list** channel_list_ptr, channel_info* channel_inf);
+int remove_node_from_channel_list(channel_list** channel_list_ptr, channel_info* channel_inf);
+int remove_node_from_user_list(user_list** user_list_ptr, user_info* user_inf);

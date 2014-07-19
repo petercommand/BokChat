@@ -6,8 +6,8 @@ typedef struct channel_info channel_info;
 #include "command.h"
 #endif
 typedef struct channel_info{
-  char* channel_name;
-  char* topic;
+  char channel_name[MAX_CHAN_NAME_LENGTH+1];
+  char topic[MAX_BUFFER+1];
   struct user_list* joined_users;
   int flags;
   struct user_list* channel_op;
@@ -19,4 +19,4 @@ int quit_user_from_channel(user_info* user_info, channel_info* channel_info);
 int is_user_op_in_channel(user_info* user_info, channel_info* channel_info);
 channel_info* channel_exist_by_name(char* channel_name);
 int is_user_in_channel(user_info* user_info, channel_info* channel_info);
-void send_message_to_all_users_in_channel(irc_channel_privmsg* channel_msg);
+void send_message_to_all_users_in_channel(irc_channel_msg* channel_msg);

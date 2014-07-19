@@ -6,6 +6,7 @@
 #ifndef LIST_H
 #include "list.h"
 #endif
+#include <unistd.h>
 extern user_list* global_user_list;
 extern channel_list* global_channel_list;
 extern pthread_mutex_t global_user_mutex;
@@ -51,34 +52,23 @@ int quit_server(user_info* user_inf){
   for(joined_channels = user_inf->joined_channels;joined_channels != NULL;joined_channels = joined_channels->next){
     quit_user_from_channel(user_inf, joined_channels->channel_info);
   }
-  free(user_inf->user_nick);
+  remove_user_from_global_list(user_inf);
+  close(user_inf->socket);
   free(user_inf);
   user_inf = NULL;
   return 0;
-
 }
-int join_user_to_global_list(user_info* user_inf){
-  user_list* head = global_user_list;
-  if(head != NULL){
-    while(head->next != NULL){
-      head = head->next;
-    }
-    head->next = (user_list *)malloc(sizeof(user_list));
-    if(head->next == NULL){
-      return -1;
-    }
-    head->next->priv = head;
-    head->next->next = NULL;
-    head->next->user_info = user_inf;
+
+int remove_user_from_global_list(user_info* user_inf){
+  if(remove_node_from_user_list(&global_user_list, user_inf) != 0){
+    return -1;
   }
-  else{
-    head = (user_list *)malloc(sizeof(user_list));
-    if(head == NULL){
-      return -1;
-    }
-    head->priv = NULL;
-    head->next = NULL;
-    head->user_info = user_inf;
+  return 0;
+}
+
+int join_user_to_global_list(user_info* user_inf){
+  if(remove_node_from_user_list(&global_user_list, user_inf) != 0){
+    return -1;
   }
   return 0;
 }
@@ -90,6 +80,7 @@ int user_already_exist_in_global_user_list(user_info* user_inf, int* error_num){
     if(head->user_info == user_inf){
       return 1;
     }
+    head = head->next;
   }
   return 0;
 }

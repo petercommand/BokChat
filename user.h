@@ -24,3 +24,4 @@ int nick_change(user_info* user_info, char* user_nick, int* error_num);
 int quit_server(user_info* user_info);
 int join_user_to_global_list(user_info* user_info);
 int user_already_exist_in_global_user_list(user_info* user_inf, int* error_num);
+int remove_user_from_global_list(user_info* user_inf);

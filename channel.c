@@ -10,9 +10,7 @@
 #ifndef CONNECT_H
 #include "connect.h"
 #endif
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+
 int create_channel(channel_info* channel_info){
   /*append channel to global channel list*/
   channel_list* head = global_channel_list;
@@ -33,6 +31,7 @@ int create_channel(channel_info* channel_info){
     if(head == NULL){
       return -1;
     }
+    global_channel_list = head;
     head->priv = NULL;
     head->next = NULL;
     head->channel_info = channel_info;
@@ -44,110 +43,24 @@ int create_channel(channel_info* channel_info){
 
 }
 
+
+
 int join_user_to_channel(user_info* user_info, channel_info* channel_info){
   /*update user_info->joined_channels & update channel user list*/
-  user_list* channel_user_list;
-  channel_user_list = channel_info->joined_users;
-  while(channel_user_list->next != NULL){
-    channel_user_list = channel_user_list->next;
-  }
-  channel_user_list->next = (user_list *)malloc(sizeof(user_list));
-  if(channel_user_list->next == NULL){
+  if(add_node_to_user_list(&channel_info->joined_users, user_info) != 0){
     return -1;
   }
-  channel_user_list->next->priv = channel_user_list;
-  channel_user_list->next->next = NULL;
-  channel_user_list = channel_user_list->next;
-  channel_user_list->user_info = user_info;
-  channel_list* user_channel_list;
-  user_channel_list = user_info->joined_channels;
-  while(user_channel_list->next != NULL){
-    user_channel_list = user_channel_list->next;
-  }
-  user_channel_list->next = (channel_list *)malloc(sizeof(channel_list));
-  if(user_channel_list->next == NULL){
+  if(add_node_to_channel_list(&user_info->joined_channels, channel_info) != 0){
     return -1;
   }
-  user_channel_list->next->priv = user_channel_list;
-  user_channel_list->next->next = NULL;
-  user_channel_list = user_channel_list->next;
-  user_channel_list->channel_info = channel_info;
   return 0;
 }
 
 int quit_user_from_channel(user_info* user_info, channel_info* channel_info){
   /*update user_info->joined_channels & update channel user list*/
-  user_list* channel_user_list;
-  channel_user_list = channel_info->joined_users;
-  while(channel_user_list != NULL){
-    if(channel_user_list->user_info == user_info){
-      if(channel_user_list->priv != NULL){
-	if(channel_user_list->next != NULL){
-	  channel_user_list = channel_user_list->priv;
-	  user_list* temp = channel_user_list->next;
-	  channel_user_list->next->next->priv = channel_user_list;
-	  channel_user_list->next = channel_user_list->next->next;
-	  free(temp);
-	  temp = NULL;
-	}
-	else{
-	  channel_user_list = channel_user_list->priv;
-	  free(channel_user_list->next);
-	  channel_user_list->next = NULL;
-	}
-      }
-      else{
-	if(channel_user_list->next != NULL){
-	  channel_user_list->next->priv = NULL;
-	  free(channel_user_list);
-	  channel_user_list = NULL;
-	}
-	else{
-	  free(channel_user_list);
-	  channel_user_list = NULL;
-	}
-      }
-      break;
-    }
-    channel_user_list = channel_user_list->next;
-  }
-  channel_list* user_channel_list;
-  user_channel_list = user_info->joined_channels;
-  while(user_channel_list != NULL){
-    if(user_channel_list->channel_info == channel_info){
-      if(user_channel_list->priv != NULL){
-	if(channel_user_list->next != NULL){
-	  user_channel_list = user_channel_list->priv;
-	  channel_list* temp = user_channel_list->next;
-	  user_channel_list->next->next->priv = user_channel_list;
-	  user_channel_list->next = user_channel_list->next->next;
-	  free(temp);
-	  temp = NULL;
-	}
-	else{
-	  user_channel_list = user_channel_list->priv;
-	  free(user_channel_list->next);
-	  user_channel_list->next = NULL;
-	}
-      }
-      else{
-	if(user_channel_list->next != NULL){
-	  user_channel_list->next->priv = NULL;
-	  free(user_channel_list);
-	  user_channel_list = NULL;
-	}
-	else{
-	  free(user_channel_list);
-	  user_channel_list = NULL;
-	}
-      }
-      break;
-    }
-    user_channel_list = user_channel_list->next;
-  }
+  remove_node_from_user_list(&channel_info->joined_users, user_info);
+  remove_node_from_channel_list(&user_info->joined_channels, channel_info);
   return 0;
-
-
 }
 int is_user_in_channel(user_info* user_info, channel_info* channel_info){
   user_list* channel_user;
@@ -171,6 +84,9 @@ int is_user_op_in_channel(user_info* user_info, channel_info* channel_info){
 
 }
 channel_info* channel_exist_by_name(char* channel_name){
+  if(global_channel_list == NULL){
+    return NULL;
+  }
   channel_list* channel_list;
   for(channel_list = global_channel_list;channel_list != NULL;channel_list = channel_list->next){
     if(strcmp(channel_list->channel_info->channel_name, channel_name) == 0){
@@ -190,30 +106,61 @@ char* get_channel_topic(channel_info* channel_info){
 }
 int set_channel_topic(channel_info* channel_info, char* topic){
   if((channel_info != NULL) && (topic != NULL)){
-    channel_info->topic = topic;
+    int i;
+    for(i=0;topic[i] != '\0';i++){
+      channel_info->topic[i] = topic[i];
+    }
+    channel_info->topic[i] = '\0';
     return 0;
   }
   else{
     return -1;
   }
 }
-void send_message_to_all_users_in_channel(irc_channel_privmsg* channel_msg){/*remember to free channel_msg after using it */
+void send_message_to_all_users_in_channel(irc_channel_msg* channel_msg){/*remember to free channel_msg after using it */
   char buf[MAX_BUFFER];
   char buf2[MAX_BUFFER];
   user_info* user_inf = channel_msg->user_inf;
-  if(channel_msg->user_inf->hostname[0] != '\0'){
-    snprintf(buf, MAX_BUFFER-3, "%s!%s@%s PRIVMSG %s :%s", user_inf->user_nick, user_inf->user_nick, user_inf->hostname, channel_msg->channel_info->channel_name, channel_msg->msg_body);
+  channel_info* channel_inf = channel_msg->channel_info;
+  char* message_type = channel_msg->message_type;
+  if(strcmp(message_type, "PRIVMSG") == 0){
+    snprintf(buf, MAX_BUFFER-3, ":%s!%s@%s PRIVMSG %s :%s", user_inf->user_nick, user_inf->user_nick, user_inf->hostname, channel_inf->channel_name, channel_msg->msg_body);
+    snprintf(buf2, MAX_BUFFER, "%s\r\n", buf);
+    pthread_mutex_lock(&global_channel_mutex);
+    user_list* head;
+    for(head = channel_msg->channel_info->joined_users;head != NULL;head = head->next){
+      if(head->user_info == user_inf){
+	continue;
+      }
+      send_message_to_user(head->user_info, buf2);
+    }
+    pthread_mutex_unlock(&global_channel_mutex);
+    goto exit;
+    
+
+
   }
-  else{
-    snprintf(buf, MAX_BUFFER-3, "%s!%s@%s PRIVMSG %s :%s", user_inf->user_nick, user_inf->user_nick, inet_ntoa(((struct sockaddr_in *)&user_inf->client_addr)->sin_addr), channel_msg->channel_info->channel_name, channel_msg->msg_body);
+  else if(strcmp(message_type, "JOIN") == 0){
+    snprintf(buf, MAX_BUFFER-3, ":%s!%s@%s JOIN %s", user_inf->user_nick, user_inf->user_nick, user_inf->hostname, channel_inf->channel_name);
+    snprintf(buf2, MAX_BUFFER, "%s\r\n", buf);
+    pthread_mutex_lock(&global_channel_mutex);
+    user_list* head;
+    for(head = channel_msg->channel_info->joined_users;head != NULL;head = head->next){
+      send_message_to_user(head->user_info, buf2);
+    }
+    pthread_mutex_unlock(&global_channel_mutex);
+    goto exit;
+    
   }
-  snprintf(buf, MAX_BUFFER, "%s\r\n", buf);
-  pthread_mutex_lock(&global_channel_mutex);
-  user_list* head;
-  for(head = channel_msg->channel_info->joined_users;head != NULL;head = head->next){
-    send_message_to_user(head->user_info, buf2);
-  }
-  pthread_mutex_unlock(&global_channel_mutex);
+
+
+
+
+
+
+
+
+ exit:
   free(channel_msg);
   channel_msg = NULL;
 
