@@ -15,7 +15,7 @@
 #include "list.h"
 #endif
 #include <errno.h>
-void get_cmd(int socket, char* buf, char* cmd);
+int get_cmd(int socket, char* buf, char* cmd);
 void client_connect_loop(int* sockfd_p);
 void client_connect(user_info* user_inf);
 void liveness_check_loop();
@@ -131,15 +131,16 @@ void liveness_check_loop(){
   }
   
 }
-void get_cmd(int socket, char* buf, char* cmd){
+int get_cmd(int socket, char* buf, char* cmd){
   memset(cmd, 0, sizeof(&cmd));
   int recv_byte = -1;
   int term_buf = -1;
   int null_buf = -1;
   char recv_cmd[MAX_BUFFER+1] = {'\0'};
   recv_byte = irc_recv(socket, recv_cmd, MAX_BUFFER, MSG_DONTWAIT);/* already used the select call to block, thus recv should be set to nonblocking */
+  printf("recv_byte: %d\n", recv_byte);
   if(recv_byte <= 0){
-    return;
+    return -1;
   }
   trim_msg(recv_cmd, recv_byte);
   strncat(buf, recv_cmd, MAX_BUFFER-strlen(buf)-1);
@@ -150,16 +151,16 @@ void get_cmd(int socket, char* buf, char* cmd){
     /* truncate and clear buf here */
     strncpy(cmd, buf, MAX_BUFFER);
     memset(buf, 0, sizeof(&buf));
-    return;
+    return 0;
   }
   if((term_buf == -1) && (term_buf < (MAX_BUFFER-1))){
     /* no command received */
-    return;
+    return 0;
   }
   buf[term_buf] = '\0';
   strncpy(cmd, buf, MAX_BUFFER);
   memmove(buf, &buf[term_buf + 2], MAX_BUFFER - term_buf -1);
-  return;
+  return 0;
 }
     
 
@@ -190,33 +191,50 @@ int init_user(user_info* user_inf, char* buf){
   int ready;
   int nick = 0;
   int user = 0;
+  int nick_already_set = 0;
   char* cmd = (char *)malloc(MAX_BUFFER);
   user_cmd cmd_info;
   memset(&cmd_info, 0, sizeof(cmd_info));
   if(cmd == NULL){
     return -1;
   }
-
   fd_set set;
-  FD_ZERO(&set);
-  FD_SET(user_inf->socket, &set);
   struct timeval wait_time;
   while((nick == 0) || (user == 0)){
+    FD_ZERO(&set);
+    FD_SET(user_inf->socket, &set);
     wait_time.tv_sec = 15;/*wait for 15 secs. Remember to reset timer after every select call!*/
     wait_time.tv_usec = 0;
     ready = select(user_inf->socket+1,  &set, NULL, NULL, &wait_time);
+    printf("select socket: %d\n", user_inf->socket);
+    printf("select: %d\n", ready);
     if(ready < 0){
       return -1;
     }
     if(FD_ISSET(user_inf->socket, &set)){
-      get_cmd(user_inf->socket, buf, cmd);
+      if(get_cmd(user_inf->socket, buf, cmd) == -1){
+	return -1;
+      }
       if(cmd != NULL){
 	cmd_info = parse_cmd(cmd);
 	printf("cmd:%s\ncmd_info->cmd:%s\ncmd_info->args:%s\n",cmd, cmd_info.cmd, cmd_info.args);
+	/*put user into global user list after first nick command as we find user by nick */
 	if(strcmp(cmd_info.cmd, "NICK") == 0){
+	  pthread_mutex_lock(&global_user_mutex);
 	  if(process_cmd(cmd_info) == 0){
 	    nick = 1;
+	    if(nick_already_set == 0){
+	      /*join user to global list*/
+	      nick_already_set = 1;
+	      if(join_user_to_global_list(user_inf) != 0){
+		/*join to global list failed*/
+		/*not finished*/
+	      }
+
+	    }
+	    
 	  }
+	  pthread_mutex_unlock(&global_user_mutex);
 	}
 	else if(strcmp(cmd_info.cmd, "USER") == 0){
 	  if(process_cmd(cmd_info) == 0){
@@ -305,5 +323,5 @@ void trim_msg(char* buf, size_t len){
 }
 
 ssize_t irc_recv(int sockfd, void* buf, size_t len, int flags){
-  return recv(sockfd, buf, len, flags);
+  return recv(sockfd, buf, len, flags);/* currently, it is only a simply wrapper function*/
 }

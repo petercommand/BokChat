@@ -107,12 +107,32 @@ int quit_user_from_channel(user_info* user_info, channel_info* channel_info){
   user_channel_list = user_info->joined_channels;
   while(user_channel_list != NULL){
     if(user_channel_list->channel_info == channel_info){
-      user_channel_list = user_channel_list->priv;
-      channel_list* temp = user_channel_list->next;
-      user_channel_list->next->next->priv = user_channel_list;
-      user_channel_list->next = user_channel_list->next->next;
-      free(temp);
-      temp = NULL;
+      if(user_channel_list->priv != NULL){
+	if(channel_user_list->next != NULL){
+	  user_channel_list = user_channel_list->priv;
+	  channel_list* temp = user_channel_list->next;
+	  user_channel_list->next->next->priv = user_channel_list;
+	  user_channel_list->next = user_channel_list->next->next;
+	  free(temp);
+	  temp = NULL;
+	}
+	else{
+	  user_channel_list = user_channel_list->priv;
+	  free(user_channel_list->next);
+	  user_channel_list->next = NULL;
+	}
+      }
+      else{
+	if(user_channel_list->next != NULL){
+	  user_channel_list->next->priv = NULL;
+	  free(user_channel_list);
+	  user_channel_list = NULL;
+	}
+	else{
+	  free(user_channel_list);
+	  user_channel_list = NULL;
+	}
+      }
       break;
     }
     user_channel_list = user_channel_list->next;

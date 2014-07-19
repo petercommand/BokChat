@@ -49,5 +49,30 @@ int quit_server(user_info* user_info){
   return 0;
 
 }
+int join_user_to_global_list(user_info* user_info){
+  user_list* head = global_user_list;
+  if(head != NULL){
+    while(head->next != NULL){
+      head = head->next;
+    }
+    head->next = (user_list *)malloc(sizeof(user_list));
+    if(head->next == NULL){
+      return -1;
+    }
+    head->next->priv = head;
+    head->next->next = NULL;
+    head->next->user_info = user_info;
+  }
+  else{
+    head = (user_list *)malloc(sizeof(user_list));
+    if(head == NULL){
+      return -1;
+    }
+    head->priv = NULL;
+    head->next = NULL;
+    head->user_info = user_info;
+  }
+  return 0;
+}
 
 
