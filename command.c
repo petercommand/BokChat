@@ -274,17 +274,19 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     pthread_mutex_unlock(&global_channel_mutex);
     if(channel_inf == NULL){
       send_message(403, user_inf, NULL, cmd, &irc_args);
-      goto error;
-    }
-    if(is_user_in_channel(user_inf, channel_inf) != 1){
-      /*user not in channel*/
+      pthread_mutex_unlock(&global_channel_mutex);
       goto error;
     }
     pthread_mutex_lock(&global_channel_mutex);
-    pthread_mutex_unlock(&global_channel_mutex);
+    if(is_user_in_channel(user_inf, channel_inf) != 1){
+      /*user not in channel*/
+      pthread_mutex_unlock(&global_channel_mutex);
+      goto error;
+    }
     channel_msg->channel_info = channel_inf;
     send_message_to_all_users_in_channel(channel_msg);
     quit_user_from_channel(user_inf, channel_inf);
+    pthread_mutex_unlock(&global_channel_mutex);
 
 
 
