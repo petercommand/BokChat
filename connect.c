@@ -168,10 +168,7 @@ void client_connect(user_info* user_inf){
   
   }
  error:
-  pthread_mutex_lock(&user_inf->sock_mutex);
-  close(user_inf->socket);
-  pthread_mutex_unlock(&user_inf->sock_mutex);
-  free(user_inf);
+  quit_server(user_inf);
   free(buf);
   free(cmd);
   free(msg);
