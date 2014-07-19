@@ -47,7 +47,7 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
       send_message(461, user_inf, cmd, &irc_args);
       goto error;
     }
-    /*goto exit;*/
+    goto exit;
 
   }
   else if(strcmp(cmd, "JOIN") == 0){

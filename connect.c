@@ -225,14 +225,29 @@ int valid_channel(char* input){
   }
   int len = strlen(input);
   int i;
+  if(strlen(input) < 2){
+    return 0;
+  }
+  if(input[0] != '#'){
+    return 0;
+  }
+  if(((input[1] >= 'a') && (input[1] <= 'z')) == 0){
+    return 0;
+  }
+  if(((input[1] >= 'a') && (input[1] <= 'Z')) == 0){
+    return 0;
+  }
+  if((input[1] == '_') || (input[1] == '-') || (input[1] == '#') || (input[1] == '.')){
+    return 0;
+  }
   for(i=0;i<len;i++){
     if((input[i] >= 'a') && (input[i] <= 'z')){
       continue;
     }
-    if((input[i] >= 'a') && (input[i] <= 'Z')){
+    if((input[i] >= 'A') && (input[i] <= 'Z')){
       continue;
     }
-    if((input[i] == '_') || (input[i] == '-') || (input[i] == '#') || (input[i] == '.')){
+    if((input[i] == '_') || (input[i] == '-') || (input[i] == '.') || (input[i] == '(') || (input[i] == ')')){
       continue;
     }
     return 0;
@@ -254,7 +269,10 @@ int valid_nick(char* input){
     if((input[i] >= 'a') && (input[i] <= 'Z')){
       continue;
     }
-    if((input[i] == '_') || (input[i] == '-') || (input[i] == '.')){
+    if((input[i] >= '0') && (input[i] <= '9')){
+      continue;
+    }
+    if((input[i] == '_') || (input[i] == '-') || (input[i] == '.') || (input[i] == '^') || (input[i] == '(') || (input[i] == ')')){
       continue;
     }
     return 0;
