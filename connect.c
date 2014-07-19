@@ -228,7 +228,7 @@ int get_cmd(int socket, char* buf, char* cmd, int* timeout){
       return -1;
     }
     if(FD_ISSET(socket, &set)){
-      recv_byte = irc_recv(socket, recv_cmd, MAX_BUFFER - 1, MSG_DONTWAIT);/* already used the select call to block, thus recv should be set to nonblocking */
+      recv_byte = irc_recv(socket, recv_cmd, MAX_BUFFER -1, MSG_DONTWAIT);/* already used the select call to block, thus recv should be set to nonblocking */
       if(recv_byte <= 0){
 	return -1;
       }
@@ -259,6 +259,7 @@ int get_cmd(int socket, char* buf, char* cmd, int* timeout){
   }
   buf[term_buf2] = '\0';
   strncpy(cmd, buf, MAX_BUFFER);
+  memset(buf, 0, term_buf2 + 1);
   if(buf[term_buf2+1] != '\0'){
     memmove(buf, &buf[term_buf2 + 1], MAX_BUFFER - term_buf2 - 1);
   }
