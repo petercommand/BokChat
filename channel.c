@@ -4,20 +4,33 @@
 #ifndef MAIN_H
 #include "main.h"
 #endif
-extern pthread_mutex_t global_channel_mutex;
-extern pthread_mutex_t global_user_mutex;
-extern channel_list* global_channel_list;
-extern user_list* global_user_list;
+
 int create_channel(channel_info* channel_info){
   /*append channel to global channel list*/
   channel_list* head = global_channel_list;
-  while(head->next != NULL){
-    head = head->next;
+  if(head != NULL){
+    while(head->next != NULL){
+      head = head->next;
+    }
+    head->next = (channel_list *)malloc(sizeof(channel_list));
+    if(head->next == NULL){
+      return -1;
+    }
+    head->next->priv = head;
+    head->next->next = NULL;
+    head->next->channel_info = channel_info;
   }
-  head->next = (channel_list*)malloc(sizeof(channel_list));
-  head->next->priv = head;
-  head->next->next = NULL;
-  head->next->channel_info = channel_info;
+  else{
+    head = (channel_list *)malloc(sizeof(channel_list));
+    if(head == NULL){
+      return -1;
+    }
+    head->priv = NULL;
+    head->next = NULL;
+    head->channel_info = channel_info;
+  }
+
+
   return 0;
 
 
@@ -31,6 +44,9 @@ int join_user_to_channel(user_info* user_info, channel_info* channel_info){
     channel_user_list = channel_user_list->next;
   }
   channel_user_list->next = (user_list *)malloc(sizeof(user_list));
+  if(channel_user_list->next == NULL){
+    return -1;
+  }
   channel_user_list->next->priv = channel_user_list;
   channel_user_list->next->next = NULL;
   channel_user_list = channel_user_list->next;
@@ -41,6 +57,9 @@ int join_user_to_channel(user_info* user_info, channel_info* channel_info){
     user_channel_list = user_channel_list->next;
   }
   user_channel_list->next = (channel_list *)malloc(sizeof(channel_list));
+  if(user_channel_list->next == NULL){
+    return -1;
+  }
   user_channel_list->next->priv = user_channel_list;
   user_channel_list->next->next = NULL;
   user_channel_list = user_channel_list->next;
