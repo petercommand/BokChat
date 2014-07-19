@@ -29,7 +29,7 @@ int nick_exist(char* user_nick){
 }
 
 int nick_change(user_info* user_info, char* user_nick){
-  if(strlen(user_nick)>20){
+  if(strlen(user_nick)> MAX_NICK_LENGTH){
     return -1;
   }
   if(nick_exist(user_nick)){

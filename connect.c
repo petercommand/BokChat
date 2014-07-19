@@ -15,34 +15,29 @@
 #endif
 #include <errno.h>
 
-void client_connect(user_info* user_info);
+void client_connect_loop(int* sockfd_p);
+void client_connect(user_info* user_inf);
 /*
-1. mutex init();
-2. channel list init();
-3  user list init();
-4. be sure to perform liveness(ping) check after each loop
+191. be sure to perform liveness(ping) check after each loop
+192. should use event based management
 */
 void server_mutex_init();
 void start_server(int sockfd){
   server_mutex_init();
-  while(1){
-    if(1/* add select system call*/){
-      int client_socket = -1;
-      struct sockaddr client_addr;
-      memset(&client_addr, 0, sizeof(struct sockaddr));      
-      socklen_t client_len = sizeof(struct sockaddr);
-      client_socket = accept(sockfd, &client_addr, &client_len);
-      if(client_socket < 0){/* failed to accept socket*/
-	fprintf(stderr, "Error occurred while accepting client connection: %s", strerror(errno));
-	continue;
-      }
-      user_info* user_inf = (user_info *)malloc(sizeof(user_info));
-      memset(&user_inf, 0, sizeof(user_info));
-      user_inf->socket = client_socket;
-      user_inf->liveness = time(NULL);
-      pthread_create(&(user_inf->user_thread), NULL, (void *(*)(void *))client_connect, (void *)user_inf);
-    }
+  pthread_t client_connect_thread;
+  int* sockfd_p = (int *)malloc(sizeof(int));
+  if(sockfd_p == NULL){
+    fprintf(stderr, "Failed to malloc: %s\n", strerror(errno));
+    exit(1);
   }
+  *sockfd_p = sockfd;
+  pthread_create(&client_connect_thread, NULL, (void *(*)(void *))client_connect_loop, (void *)sockfd_p);
+
+
+  while(1);
+
+  free(sockfd_p);
+  sockfd_p = NULL;
 
 }
 
@@ -63,17 +58,36 @@ int listen_bind_on_port(int port){
   irc_socket.sin_addr.s_addr = htonl(INADDR_ANY);
 
   if(bind(sockfd, (struct sockaddr*)&irc_socket, sizeof(irc_socket)) < 0){
-    fprintf(stderr, "Failed to bind socket\n");
+    fprintf(stderr, "Failed to bind socket: %s\n", strerror(errno));
     return -1;
   }
   if(listen(sockfd, MAXCONNECTION) < 0){
-    fprintf(stderr, "Failed to listen on port %d\n", port);
+    fprintf(stderr, "Failed to listen on port %d: %s\n", port, strerror(errno));
     return -1;
   }
   return sockfd;
   
 }
-void client_connect(user_info* user_info){
+void client_connect_loop(int* sockfd_p){
+  while(1){
+    int sockfd = *sockfd_p;
+    int client_socket = -1;
+    struct sockaddr client_addr;
+    memset(&client_addr, 0, sizeof(struct sockaddr));
+    socklen_t client_len = sizeof(struct sockaddr);
+    client_socket = accept(sockfd, &client_addr, &client_len);
+    if(client_socket < 0){/* failed to accept socket*/
+      fprintf(stderr, "Error occurred while accepting client connection: %s\n", strerror(errno));
+      continue;
+    }
+    user_info* user_inf = (user_info *)malloc(sizeof(user_info));
+    memset(&user_inf, 0, sizeof(user_info));
+    user_inf->socket = client_socket;
+    user_inf->liveness = time(NULL);
+    pthread_create(&(user_inf->user_thread), NULL, (void *(*)(void *))client_connect, (void *)user_inf);
+  }
+}
+void client_connect(user_info* user_inf){
   
 
 

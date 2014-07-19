@@ -142,3 +142,21 @@ int if_channel_exist_by_name(char* channel_name){
   }
   return 0;
 }
+
+char* get_channel_topic(channel_info* channel_info){
+  if(channel_info != NULL){
+    return channel_info->topic;
+  }
+  else{
+    return NULL;
+  }
+}
+int set_channel_topic(channel_info* channel_info, char* topic){
+  if((channel_info != NULL) && (topic != NULL)){
+    channel_info->topic = topic;
+    return 0;
+  }
+  else{
+    return -1;
+  }
+}

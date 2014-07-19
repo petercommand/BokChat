@@ -1,6 +1,9 @@
 #ifndef MAIN_H
 #define MAIN_H
 #endif
+#ifndef CONFIG_H
+#include "config.h"
+#endif
 
 
 #include <stdbool.h>

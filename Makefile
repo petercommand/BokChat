@@ -1,7 +1,7 @@
 all: c_proto
 CC = gcc
 INCLUDE = .
-CFLAGS = -Wall -O2
+CFLAGS = -g -Wall -O2
 
 c_proto: main.o list.o connect.o event.o irc_getopt.o channel.o user.o channel.o
 	$(CC) -lpthread -o c_proto main.o list.o connect.o event.o irc_getopt.o channel.o user.o
