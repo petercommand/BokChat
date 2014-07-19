@@ -1,5 +1,8 @@
 /* make change to the necessary structs and return the necessary data*/
 /*return int to reflect the result of the command procession */
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #ifndef CONNECT_H
 #include "connect.h"
 #endif
@@ -13,19 +16,24 @@ typedef struct irc_argument{
 }irc_argument;
 
 irc_argument parse_argument(char* args);
+ssize_t irc_recv(int sockfd, void* buf, size_t len, int flags);
+ssize_t irc_send(int sockfd, const void *buf, size_t len, int flags);
+void send_message(int error_num, int sockfd);
 
 int process_cmd(user_cmd cmd_info, user_info* user_info){
   char* cmd = cmd_info.cmd;
   char* args = cmd_info.args;
-  char* error[MAX_BUFFER] = {0};
+  int error_num;
+  int sock_fd = user_info->socket;
   irc_argument irc_args = parse_argument(args);
-  if((irc_args.param[0] == '\0') && (irc_args.trailing[0] == '\0')){
+/*  if((irc_args.param[0] == '\0') && (irc_args.trailing[0] == '\0')){
     return -1;
-  }
+    }*/
   if(strcmp(cmd, "NICK") == 0){
-    if(nick_change(user_info, irc_args.param) == 0){      
+    if(nick_change(user_info, irc_args.param, &error_num) == 0){      
       goto exit;
     }
+    send_message(error_num, sock_fd);
     goto error;
   }
   else if(strcmp(cmd, "USER") == 0){
@@ -51,6 +59,7 @@ int process_cmd(user_cmd cmd_info, user_info* user_info){
 
 
   /*No command matches */
+  send_message(421, sock_fd);
   goto error;
 
 

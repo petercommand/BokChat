@@ -9,3 +9,6 @@ typedef struct struct_user_cmd{
   char cmd[MAX_BUFFER];
   char args[MAX_BUFFER];
 }user_cmd;
+
+int valid_channel(char* input);
+int valid_nick(char* input);

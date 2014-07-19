@@ -25,9 +25,11 @@ int null_terminated(char* input, int size);
 user_cmd parse_cmd(char* cmd);
 void server_mutex_init();
 ssize_t irc_recv(int sockfd, void* buf, size_t len, int flags);
+ssize_t irc_send(int sockfd, const void *buf, size_t len, int flags);
 void trim_msg(char* buf, size_t len);
 int join_user_to_global_list(user_info* user_info);
 int process_cmd(user_cmd cmd_info, user_info* user_info);
+void send_message(int error_num, int sockfd);
 void start_server(int sockfd){
   server_mutex_init();
   pthread_t client_connect_thread;
@@ -49,7 +51,7 @@ void start_server(int sockfd){
 
 }
 
-
+/* mutex lock sequence: user then channel*/
 
 int listen_bind_on_port(int port){
 
@@ -166,7 +168,7 @@ int get_cmd(int socket, char* buf, char* cmd){
     
 
 
-int valid_string(char* input){
+int valid_channel(char* input){
   if(input == NULL){
     return 0;
   }
@@ -180,6 +182,28 @@ int valid_string(char* input){
       continue;
     }
     if((input[i] == '_') || (input[i] == '-') || (input[i] == '#') || (input[i] == '.')){
+      continue;
+    }
+    return 0;
+  }
+  return 1;
+}
+
+
+int valid_nick(char* input){
+  if(input == NULL){
+    return 0;
+  }
+  int len = strlen(input);
+  int i;
+  for(i=0;i<len;i++){
+    if((input[i] >= 'a') && (input[i] <= 'z')){
+      continue;
+    }
+    if((input[i] >= 'a') && (input[i] <= 'Z')){
+      continue;
+    }
+    if((input[i] == '_') || (input[i] == '-') || (input[i] == '.')){
       continue;
     }
     return 0;
@@ -227,20 +251,21 @@ int init_user(user_info* user_inf, char* buf){
 	    if(nick_already_set == 0){
 	      /*join user to global list*/
 	      nick_already_set = 1;
-	      if(join_user_to_global_list(user_inf) != 0){
-		/*join to global list failed*/
-		/*not finished, send user message to mention that setting nick has failed*/
-	      }
-
+	      join_user_to_global_list(user_inf);
 	    }
 	    
 	  }
 	  pthread_mutex_unlock(&global_user_mutex);
 	}
 	else if(strcmp(cmd_info.cmd, "USER") == 0){
+	  pthread_mutex_lock(&global_user_mutex);
 	  if(process_cmd(cmd_info, user_inf) == 0){
 	    user = 1;
 	  }
+	  pthread_mutex_unlock(&global_user_mutex);
+	}
+	else{
+	  send_message(451, user_inf->socket);
 	}
 	  
       }
@@ -334,4 +359,256 @@ void trim_msg(char* buf, size_t len){
 
 ssize_t irc_recv(int sockfd, void* buf, size_t len, int flags){
   return recv(sockfd, buf, len, flags);/* currently, it is only a simply wrapper function*/
+}
+ssize_t irc_send(int sockfd, const void *buf, size_t len, int flags){
+  return send(sockfd, buf, len, flags);
+}
+
+void send_message(int error_num, int sockfd){
+  switch(error_num){
+  case 401:
+    break;
+  case 402:
+    break;
+  case 403:
+    break;
+  case 404:
+    break;
+  case 405:
+    break;
+  case 406:
+    break;
+  case 407:
+    break;
+  case 409:
+    break;
+  case 411:
+    break;
+  case 412:
+    break;
+  case 413:
+    break;
+  case 414:
+    break;
+  case 421:
+    irc_send(sockfd, "421 Unknown command\r\n", strlen("421 Unknown command\r\n"), 0);
+    break;
+  case 422:
+    break;
+  case 423:
+    break;
+  case 424:
+    break;
+  case 431:
+    irc_send(sockfd, "431 :No nickname given\r\n", strlen("432 :No nickname given\r\n"), 0);
+    break;
+  case 432:
+    irc_send(sockfd, "432 :Erroneus nickname\r\n", strlen("432 :Erroneus nickname\r\n"), 0);
+    break;
+  case 433:
+    irc_send(sockfd, "433 :Nickname is already in use\r\n", strlen("432 :Nicknae is already in use\r\n"), 0);
+    break;
+  case 436:
+    break;
+  case 441:
+    break;
+  case 442:
+    break;
+  case 443:
+    break;
+  case 444:
+    break;
+  case 445:
+    break;
+  case 446:
+    break;
+  case 451:
+    irc_send(sockfd, "451 :You have not registered\r\n", strlen("451 :You have not registered\r\n"), 0);
+    break;
+  case 461:
+    break;
+  case 462:
+    break;
+  case 463:
+    break;
+  case 464:
+    break;
+  case 465:
+    break;
+  case 467:
+    break;
+  case 471:
+    break;
+  case 472:
+    break;
+  case 473:
+    break;
+  case 474:
+    break;
+  case 475:
+    break;
+  case 481:
+    break;
+  case 482:
+    break;
+  case 483:
+    break;
+  case 491:
+    break;
+  case 501:
+    break;
+  case 502:
+    break;
+  case 300:
+    break;
+  case 302:
+    break;
+  case 303:
+    break;
+  case 301:
+    break;
+  case 305:
+    break;
+  case 306:
+    break;
+  case 311:
+    break;
+  case 312:
+    break;
+  case 313:
+    break;
+  case 317:
+    break;
+  case 318:
+    break;
+  case 319:
+    break;
+  case 314:
+    break;
+  case 369:
+    break;
+  case 321:
+    break;
+  case 322:
+    break;
+  case 323:
+    break;
+  case 324:
+    break;
+  case 331:
+    break;
+  case 332:
+    break;
+  case 341:
+    break;
+  case 342:
+    break;
+  case 351:
+    break;
+  case 352:
+    break;
+  case 315:
+    break;
+  case 353:
+    break;
+  case 366:
+    break;
+  case 364:
+    break;
+  case 365:
+    break;
+  case 367:
+    break;
+  case 368:
+    break;
+  case 371:
+    break;
+  case 374:
+    break;
+  case 375:
+    break;
+  case 372:
+    break;
+  case 376:
+    break;
+  case 381:
+    break;
+  case 382:
+    break;
+  case 391:
+    break;
+  case 392:
+    break;
+  case 393:
+    break;
+  case 394:
+    break;
+  case 395:
+    break;
+  case 200:
+    break;
+  case 201:
+    break;
+  case 202:
+    break;
+  case 203:
+    break;
+  case 204:
+    break;
+  case 205:
+    break;
+  case 206:
+    break;
+  case 208:
+    break;
+  case 261:
+    break;
+  case 211:
+    break;
+  case 212:
+    break;
+  case 213:
+    break;
+  case 214:
+    break;
+  case 215:
+    break;
+  case 216:
+    break;
+  case 218:
+    break;
+  case 219:
+    break;
+  case 241:
+    break;
+  case 242:
+    break;
+  case 243:
+    break;
+  case 244:
+    break;
+  case 221:
+    break;
+  case 251:
+    break;
+  case 252:
+    break;
+  case 253:
+    break;
+  case 254:
+    break;
+  case 255:
+    break;
+  case 256:
+    break;
+  case 257:
+    break;
+  case 258:
+    break;
+  case 259:
+    break;
+
+  default:
+    break;
+  }
 }
