@@ -253,7 +253,7 @@ int get_cmd(int socket, char* buf, char* cmd, int* timeout){
   printf("term_buf: %d\n", term_buf2);
   if(term_buf2 == -1){
     /* truncate and clear buf here */
-    buf[term_buf2] = '\0';
+    buf[MAX_BUFFER-1] = '\0';
     strncpy(cmd, buf, MAX_BUFFER);
     memset(buf, 0, sizeof(&buf));
     return 0;
