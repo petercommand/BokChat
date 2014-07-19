@@ -7,6 +7,7 @@
 #include "config.h"
 #endif
 #include <netdb.h>
+typedef struct user_list user_list;
 typedef struct channel_list channel_list;
 typedef struct user_info{
   pthread_t user_thread;
@@ -25,3 +26,4 @@ int quit_server(user_info* user_info);
 int join_user_to_global_list(user_info* user_info);
 int is_user_in_global_user_list(user_info* user_inf);
 int remove_user_from_global_list(user_info* user_inf);
+int is_node_in_user_list(user_list* user_lst, user_info* user_inf);

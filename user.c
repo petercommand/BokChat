@@ -69,7 +69,7 @@ int remove_user_from_global_list(user_info* user_inf){
 }
 
 int join_user_to_global_list(user_info* user_inf){
-  if(remove_node_from_user_list(&global_user_list, user_inf) != 0){
+  if(add_node_to_user_list(&global_user_list, user_inf) != 0){
     return -1;
   }
   return 0;

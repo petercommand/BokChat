@@ -67,31 +67,34 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     old_nick[i] = '\0';
     pthread_mutex_lock(&global_user_mutex);
     if(nick_change(user_inf, irc_args.param, &error_num) == 0){ 
-      pthread_mutex_unlock(&global_user_mutex);
       pthread_mutex_lock(&global_channel_mutex);
+      
 
-      pthread_t nickmsg;
       channel_list* head;
+      user_list* head2;
+      user_list* user_lst = NULL;
+      add_node_to_user_list(&user_lst, user_inf);
       for(head = user_inf->joined_channels;head!=NULL;head = head->next){
-	irc_channel_msg* channel_msg = (irc_channel_msg *)malloc(sizeof(irc_channel_msg));
-	if(channel_msg == NULL){
-	  goto error;
+	for(head2 = head->channel_info->joined_users;head2 != NULL;head2 = head2->next){
+	  if(is_node_in_user_list(user_lst, head2->user_info) == 0){
+	    add_node_to_user_list(&user_lst, head2->user_info);
+	  }
 	}
-	memset(channel_msg, 0, sizeof(*channel_msg));
-	const char* msg_type = "NICK";
-	for(i=0;msg_type[i]!='\0';i++){
-	  channel_msg->message_type[i] = msg_type[i];
-	}
-	channel_msg->channel_info = head->channel_info;
-	channel_msg->user_inf = user_inf;
-	
-	for(i=0; old_nick[i] != '\0'; i++){
-	  channel_msg->msg_body[i] = old_nick[i];
-	}
-	channel_msg->msg_body[i] = '\0';
-	pthread_create(&nickmsg, NULL, (void *(*)(void *))send_message_to_all_users_in_channel, (void *)channel_msg);
       }
       pthread_mutex_unlock(&global_channel_mutex);
+      pthread_mutex_unlock(&global_user_mutex);
+      list_msg* nick_list_msg = (list_msg *)malloc(sizeof(list_msg));
+      if(nick_list_msg == NULL){
+	return -1;
+      }
+      char msg[MAX_BUFFER] = {0};
+      memset(nick_list_msg, 0, sizeof(list_msg));
+      snprintf(msg, MAX_BUFFER -3, ":%s!%s NICK :%s", old_nick, old_nick, user_inf->user_nick);
+      snprintf(nick_list_msg->msg_body, MAX_BUFFER, "%s\r\n", msg);
+      nick_list_msg->user_lst = user_lst;
+      pthread_t nick_thread;
+      pthread_create(&nick_thread, NULL, (void *(*)(void *))send_message_to_user_in_list, (void *)nick_list_msg);
+
       goto exit;
     }
     pthread_mutex_unlock(&global_user_mutex);
@@ -156,7 +159,6 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     goto exit;
   }
   else if(strcmp(cmd, "JOIN") == 0){
-    printf("Received join msg\n");
     pthread_t msg_thread;
     irc_channel_msg* channel_msg = (irc_channel_msg *)malloc(sizeof(irc_channel_msg));
     if(channel_msg == NULL){
@@ -213,6 +215,13 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
 
     channel_msg->channel_info = channel_inf;
     pthread_create(&msg_thread, NULL, (void *(*)(void *))send_message_to_all_users_in_channel, (void *)channel_msg);
+    goto exit;
+  }
+  else if(strcmp(cmd, "NAMES") == 0){
+
+
+
+
     goto exit;
   }
   else if(strcmp(cmd, "PART") == 0){

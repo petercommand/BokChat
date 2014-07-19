@@ -157,16 +157,7 @@ void client_connect(user_info* user_inf){
     user_cmd cmd_info = parse_cmd(cmd);   
     printf("cmd_info->cmd:%s\ncmd_info->args:%s\n", cmd_info.cmd, cmd_info.args);   
     process_cmd(cmd_info, user_inf); 
- 
- 
- 
- 
-
-
-  /*NOT finished*/
-  
-  
-  }
+   }
  error:
   quit_server(user_inf);
   free(buf);
@@ -494,6 +485,35 @@ void send_message_to_user(user_info* user_inf, char* msg_body){
   pthread_mutex_lock(&user_inf->sock_mutex);
   irc_send(user_inf->socket, msg_body, strlen(msg_body), MSG_DONTWAIT);
   pthread_mutex_unlock(&user_inf->sock_mutex);
+
+
+}
+
+void send_message_to_user_in_list(list_msg* user_list_msg){/*remember to free in callee*/
+  int i;
+  user_list* user_lst = user_list_msg->user_lst;
+  char* buf = user_list_msg->msg_body;
+  while(user_lst != NULL){
+    pthread_mutex_lock(&user_lst->user_info->sock_mutex);
+    i = irc_send(user_lst->user_info->socket, buf, strlen(buf), MSG_DONTWAIT);
+    printf("%d\n", i);
+    pthread_mutex_unlock(&user_lst->user_info->sock_mutex);
+    if(user_lst->next != NULL){
+      user_lst = user_lst->next;
+      remove_node_from_user_list(&user_lst->priv, user_lst->priv->user_info);
+    }
+    else if(user_lst->priv != NULL){
+      user_lst = user_lst->priv;
+      remove_node_from_user_list(&user_lst->next, user_lst->next->user_info);
+    }
+    else{
+      remove_node_from_user_list(&user_lst, user_lst->user_info);
+      user_lst = NULL;
+    }
+  }
+  free(user_list_msg);
+	     
+
 
 
 }
