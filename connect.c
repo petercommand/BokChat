@@ -41,7 +41,7 @@ int process_cmd_nick_init(user_cmd cmd_info, user_info* user_inf);
 void reverse_dns(user_info* user_inf);
 void send_message_by_type(user_info* user_inf, const char* msg_type, char* msg_body);
 void send_message_by_number(int num, user_info* user_inf, char* msg_body);
-void send_message(int error_num, user_info* user_inf, char* cmd, irc_argument* irc_args);
+void send_message(int error_num, user_info* user_inf, channel_info* channel_inf, char* cmd, irc_argument* irc_args);
 void print_hex(char *input);
 void motd(user_info* user_inf);
 
@@ -49,6 +49,12 @@ void start_server(int sockfd){
   server_mutex_init();
   pthread_t client_connect_thread;
   pthread_t liveness_check_thread;
+  pthread_attr_t client_connect_thread_attr;
+  pthread_attr_setdetachstate(&client_connect_thread_attr, PTHREAD_CREATE_DETACHED);
+  pthread_attr_init(&client_connect_thread_attr);
+  pthread_attr_t liveness_check_thread_attr;
+  pthread_attr_init(&liveness_check_thread_attr);
+  pthread_attr_setdetachstate(&liveness_check_thread_attr, PTHREAD_CREATE_DETACHED);
   int* sockfd_p = (int *)malloc(sizeof(int));
   if(sockfd_p == NULL){
     fprintf(stderr, "Failed to malloc: %s\n", strerror(errno));
@@ -59,8 +65,8 @@ void start_server(int sockfd){
   memset(&sa, 0, sizeof(sa));
   sa.sa_handler = SIG_IGN;
   sigaction(SIGPIPE, &sa, 0);
-  pthread_create(&client_connect_thread, NULL, (void *(*)(void *))client_connect_loop, (void *)sockfd_p);
-  pthread_create(&liveness_check_thread, NULL, (void *(*)(void *))liveness_check_loop, NULL);
+  pthread_create(&client_connect_thread, &client_connect_thread_attr, (void *(*)(void *))client_connect_loop, (void *)sockfd_p);
+  pthread_create(&liveness_check_thread, &liveness_check_thread_attr, (void *(*)(void *))liveness_check_loop, NULL);
 
 
   while(1){
@@ -117,7 +123,10 @@ void client_connect_loop(int* sockfd_p){
     user_inf->liveness = time(NULL);
     user_inf->client_addr = client_addr;
     pthread_mutex_init(&user_inf->sock_mutex, NULL);
-    pthread_create(&(user_inf->user_thread), NULL, (void *(*)(void *))client_connect, (void *)user_inf);
+    pthread_attr_t user_thread_attr;
+    pthread_attr_init(&user_thread_attr);
+    pthread_attr_setdetachstate(&user_thread_attr, PTHREAD_CREATE_DETACHED);
+    pthread_create(&user_inf->user_thread, &user_thread_attr, (void *(*)(void *))client_connect, (void *)user_inf);
   }
 }
 void client_connect(user_info* user_inf){
@@ -345,7 +354,7 @@ int init_user(user_info* user_inf, char* buf){
 	continue;
       }
       else{
-	send_message(451, user_inf, NULL, NULL);
+	send_message(451, user_inf, NULL, NULL, NULL);
       }
       
     }
@@ -605,7 +614,7 @@ void motd(user_info* user_inf){
 
 
 
-void send_message(int error_num, user_info* user_inf, char* cmd, irc_argument* irc_args){
+void send_message(int error_num, user_info* user_inf, channel_info* channel_inf, char* cmd, irc_argument* irc_args){
   char msg[MAX_BUFFER] = {0};
   char msg2[MAX_BUFFER] = {0};
   int sockfd = user_inf->socket;
@@ -774,8 +783,22 @@ void send_message(int error_num, user_info* user_inf, char* cmd, irc_argument* i
   case 324:
     break;
   case 331:
+    snprintf(msg, sizeof(msg)-3, ":%s 331 %s :No topic is set", SERVER_NAME, irc_args->param);
+    snprintf(msg2, sizeof(msg2), "%s\r\n", msg);
+    pthread_mutex_lock(&user_inf->sock_mutex);
+    irc_send(sockfd, msg2, strlen(msg2), 0);
+    pthread_mutex_unlock(&user_inf->sock_mutex);
     break;
   case 332:
+    /*
+
+
+    snprintf(msg, sizeof(msg)-strlen(SERVER_NAME)-5, ":%s 332 %s :%s", SERVER_NAME, );
+    snprintf(msg2, sizeof(msg2), "%s\r\n", msg);
+    pthread_mutex_lock(&user_inf->sock_mutex);
+    irc_send(sockfd, msg2, strlen(msg2), 0);
+    pthread_mutex_unlock(&user_inf->sock_mutex);
+    */
     break;
   case 341:
     break;

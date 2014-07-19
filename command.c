@@ -42,7 +42,7 @@ int process_cmd_nick_init(user_cmd cmd_info, user_info* user_inf){
     return 0;
   }
   pthread_mutex_unlock(&global_user_mutex);
-  send_message(error_num, user_inf, cmd, &irc_args);
+  send_message(error_num, user_inf, NULL, cmd, &irc_args);
   return -1;
 }
 
@@ -93,12 +93,15 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
       snprintf(nick_list_msg->msg_body, MAX_BUFFER, "%s\r\n", msg);
       nick_list_msg->user_lst = user_lst;
       pthread_t nick_thread;
-      pthread_create(&nick_thread, NULL, (void *(*)(void *))send_message_to_user_in_list, (void *)nick_list_msg);
+      pthread_attr_t nick_thread_attr;
+      pthread_attr_init(&nick_thread_attr);
+      pthread_attr_setdetachstate(&nick_thread_attr, PTHREAD_CREATE_DETACHED);
+      pthread_create(&nick_thread, &nick_thread_attr, (void *(*)(void *))send_message_to_user_in_list, (void *)nick_list_msg);
 
       goto exit;
     }
     pthread_mutex_unlock(&global_user_mutex);
-    send_message(error_num, user_inf, cmd, &irc_args);
+    send_message(error_num, user_inf, NULL, cmd, &irc_args);
     goto error;
   }
   else if(strcmp(cmd, "PRIVMSG") == 0){
@@ -106,12 +109,12 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
       pthread_mutex_lock(&global_channel_mutex);
       channel_info* channel_inf = channel_exist_by_name(irc_args.param);
       if(channel_inf == NULL){
-	send_message(403, user_inf, cmd, &irc_args);
+	send_message(403, user_inf, NULL, cmd, &irc_args);
 	pthread_mutex_unlock(&global_channel_mutex);
 	goto error;
       }
       if(is_user_in_channel(user_inf, channel_inf) == 0){
-	send_message(404, user_inf, cmd, &irc_args);
+	send_message(404, user_inf, NULL, cmd, &irc_args);
 	pthread_mutex_unlock(&global_channel_mutex);
 	goto error;
       }
@@ -133,7 +136,10 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
       }
       channel_msg->msg_body[i] = '\0';
       pthread_t privmsg;
-      pthread_create(&privmsg, NULL, (void *(*)(void *))send_message_to_all_users_in_channel, (void *)channel_msg);
+      pthread_attr_t privmsg_attr;
+      pthread_attr_init(&privmsg_attr);
+      pthread_attr_setdetachstate(&privmsg_attr, PTHREAD_CREATE_DETACHED);
+      pthread_create(&privmsg, &privmsg_attr, (void *(*)(void *))send_message_to_all_users_in_channel, (void *)channel_msg);
       goto exit;
     }
     else{/*person*/
@@ -151,7 +157,7 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     }
     if((irc_args.param[0] == '\0') || (irc_args.trailing[0] == '\0')){
       pthread_mutex_unlock(&global_user_mutex); 
-      send_message(461, user_inf, cmd, &irc_args);
+      send_message(461, user_inf, NULL, cmd, &irc_args);
       goto error;
     }
     join_user_to_global_list(user_inf);
@@ -201,11 +207,14 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
       }
       pthread_mutex_unlock(&global_channel_mutex);
       channel_msg->channel_info = channel_inf;
-      pthread_create(&msg_thread, NULL, (void *(*)(void *))send_message_to_all_users_in_channel, (void *)channel_msg);
+      pthread_attr_t msg_thread_attr;
+      pthread_attr_init(&msg_thread_attr);
+      pthread_attr_setdetachstate(&msg_thread_attr, PTHREAD_CREATE_DETACHED);
+      pthread_create(&msg_thread, &msg_thread_attr, (void *(*)(void *))send_message_to_all_users_in_channel, (void *)channel_msg);
       goto exit;
     }
     if(is_user_in_channel(user_inf, channel_inf) == 1){
-      send_message(443, user_inf, cmd, &irc_args);
+      send_message(443, user_inf, NULL, cmd, &irc_args);
       goto error;
     }
     if(join_user_to_channel(user_inf, channel_inf) != 0){      
@@ -214,7 +223,10 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
 
 
     channel_msg->channel_info = channel_inf;
-    pthread_create(&msg_thread, NULL, (void *(*)(void *))send_message_to_all_users_in_channel, (void *)channel_msg);
+    pthread_attr_t msg_thread_attr;
+    pthread_attr_init(&msg_thread_attr);
+    pthread_attr_setdetachstate(&msg_thread_attr, PTHREAD_CREATE_DETACHED);
+    pthread_create(&msg_thread, &msg_thread_attr, (void *(*)(void *))send_message_to_all_users_in_channel, (void *)channel_msg);
     goto exit;
   }
   else if(strcmp(cmd, "NAMES") == 0){
@@ -228,8 +240,26 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     
     goto exit;
   }
+  else if(strcmp(cmd, "TOPIC") == 0){
+    if(irc_args.trailing[0] == '\0'){/*get topic */
+
+
+
+    }
+    else{/*change topic*/
+
+
+    }
+
+    goto exit;
+  }
   else if(strcmp(cmd, "KICK") == 0){
     
+    goto exit;
+  }
+  else if(strcmp(cmd, "WHOIS") == 0){
+
+
     goto exit;
   }
   else if(strcmp(cmd, "QUIT") == 0){
@@ -243,7 +273,7 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
 
 
   /*No command matches */
-  send_message(421, user_inf, cmd, NULL);
+  send_message(421, user_inf, NULL, cmd, NULL);
   goto error;
 
 

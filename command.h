@@ -19,5 +19,5 @@ typedef struct list_msg{
   char msg_body[MAX_BUFFER];
 }list_msg;
 
-void send_message(int error_num, user_info* user_inf, char* cmd, irc_argument* irc_args);
+void send_message(int error_num, user_info* user_inf, channel_info* channel_inf, char* cmd, irc_argument* irc_args);
 void motd(user_info* user_inf);
