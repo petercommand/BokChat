@@ -1,24 +1,18 @@
-all: rlhsu_server
-CC = gcc
-INCLUDE = .
-CFLAGS = -g -Wall -O2
+CFLAGS  = -g -Wall -O2 -pthread
+LDFLAGS = -lpthread
 
-rlhsu_server: main.o list.o connect.o irc_getopt.o channel.o user.o command.o
-	$(CC) -lpthread -o rlhsu_server main.o list.o connect.o irc_getopt.o channel.o user.o command.o
-main.o: main.c
-	$(CC) -lpthread -I$(INCLUDE) $(CFLAGS) -c main.c
-list.o: list.c
-	$(CC) -lpthread -I$(INCLUDE) $(CFLAGS) -c list.c
-irc_getopt.o: irc_getopt.c
-	$(CC) -lpthread -I$(INCLUDE) $(CFLAGS) -c irc_getopt.c 
-user.o: user.c
-	$(CC) -lpthread -I$(INCLUDE) $(CFLAGS) -c user.c
-channel.o: channel.c
-	$(CC) -lpthread -I$(INCLUDE) $(CFLAGS) -c channel.c
-connect.o: connect.c
-	$(CC) -lpthread -I$(INCLUDE) $(CFLAGS) -c connect.c
-command.o: command.c
-	$(CC) -lpthread -I$(INCLUDE) $(CFLAGS) -c command.c
+SRCS = main.c list.c connect.c irc_getopt.c channel.c user.c command.c
+OBJS = $(SRCS:%.c=%.o)
+BIN = rlhsu_server
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $<
+
+all: $(BIN)
+
+
+rlhsu_server: $(OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
 
 clean:
-	rm main.o list.o connect.o irc_getopt.o channel.o user.o command.o
+	rm -f $(BIN) $(OBJS)
