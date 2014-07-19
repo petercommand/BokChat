@@ -1,10 +1,8 @@
+#ifndef CHANNEL_H
+#define CHANNEL_H
 typedef struct channel_info channel_info;
-#ifndef LIST_H
 #include "list.h"
-#endif
-#ifndef COMMAND_H
 #include "command.h"
-#endif
 typedef struct channel_info{
   char channel_name[MAX_CHAN_NAME_LENGTH+1];
   char topic[MAX_BUFFER+1];
@@ -22,3 +20,6 @@ int is_user_in_channel(user_info* user_info, channel_info* channel_info);
 void send_message_to_all_users_in_channel(irc_channel_msg* channel_msg);
 char* get_channel_topic(channel_info* channel_info);
 int set_channel_topic(channel_info* channel_info, char* topic);
+
+
+#endif

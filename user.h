@@ -1,11 +1,10 @@
+#ifndef USER_H
+#define USER_H
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#define USER_H
 #include <pthread.h>
-#ifndef CONFIG_H
 #include "config.h"
-#endif
 #include <netdb.h>
 typedef struct user_list user_list;
 typedef struct channel_list channel_list;
@@ -29,3 +28,5 @@ int remove_user_from_global_list(user_info* user_inf);
 int is_node_in_user_list(user_list* user_lst, user_info* user_inf);
 void update_user_liveness(user_info* user_inf);
 
+
+#endif

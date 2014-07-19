@@ -1,10 +1,8 @@
+#ifndef LIST_H
 #define LIST_H
-#ifndef USER_H
 #include "user.h"
-#endif
-#ifndef CHANNEL_H
 #include "channel.h"
-#endif
+
 
 
 
@@ -37,3 +35,6 @@ int add_node_to_user_list(user_list** user_list_ptr, user_info* user_inf);
 int add_node_to_channel_list(channel_list** channel_list_ptr, channel_info* channel_inf);
 int remove_node_from_channel_list(channel_list** channel_list_ptr, channel_info* channel_inf);
 int remove_node_from_user_list(user_list** user_list_ptr, user_info* user_inf);
+
+
+#endif

@@ -1,6 +1,6 @@
 #ifndef IRC_GETOPT_H
 #define IRC_GET_OPT_H
-#endif
+
 #include "getopt.h"
 #include "main.h"
 struct cmd_arg_opt {
@@ -14,3 +14,4 @@ void get_server_opt(cmd_arg_opt* cmd_opt_ptr,int* argc, char** argv[]);
 
 
 
+#endif

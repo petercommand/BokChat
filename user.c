@@ -1,16 +1,8 @@
 /* todo: perform liveness check*/
 #include "connect.h"
-#ifndef MAIN_H
 #include "main.h"
-#endif
-#ifndef LIST_H
 #include "list.h"
-#endif
 #include <unistd.h>
-extern user_list* global_user_list;
-extern channel_list* global_channel_list;
-extern pthread_mutex_t global_user_mutex;
-extern pthread_mutex_t global_channel_mutex;
 
 
 int nick_exist(char* user_nick, int* error_num){

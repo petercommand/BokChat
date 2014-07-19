@@ -1,15 +1,8 @@
-#ifndef LIST_H
 #include "list.h"
-#endif
-#ifndef MAIN_H
 #include "main.h"
-#endif
-#ifndef COMMAND_H
 #include "command.h"
-#endif
-#ifndef CONNECT_H
 #include "connect.h"
-#endif
+
 
 int create_channel(channel_info* channel_info){
   /*append channel to global channel list*/

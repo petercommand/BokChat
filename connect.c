@@ -4,21 +4,11 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
-#ifndef CONNECT_H
 #include "connect.h"
-#endif
-#ifndef MAIN_H
 #include "main.h"
-#endif
-#ifndef CONFIG_H
 #include "config.h"
-#endif
-#ifndef LIST_H
 #include "list.h"
-#endif
-#ifndef COMMAND_H
 #include "command.h"
-#endif
 #include <signal.h>
 #include <errno.h>
 #include <ctype.h>

@@ -1,17 +1,9 @@
 #include <time.h>
-#ifndef IRC_GETOPT_H
 #include "irc_getopt.h"
-#endif
 #include <unistd.h>
-#ifndef MAIN_H
 #include "main.h"
-#endif 
-#ifndef CONFIG_H
 #include "config.h"
-#endif
-#ifndef CONNECT_H
 #include "connect.h"
-#endif
 #include <errno.h>
 
 

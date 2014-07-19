@@ -1,6 +1,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
-#endif
+
 
 
  
@@ -17,3 +17,5 @@
 #define MAX_BUFFER 512
 
 #define SERVER_NAME "rlhsu.cupcake"
+
+#endif

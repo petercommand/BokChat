@@ -3,18 +3,10 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#ifndef CONNECT_H
 #include "connect.h"
-#endif
-#ifndef LIST_H
 #include "list.h"
-#endif
-#ifndef COMMAND_H
 #include "command.h"
-#endif
-#ifndef CONFIG_H
 #include "config.h"
-#endif
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

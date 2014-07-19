@@ -1,6 +1,4 @@
-#ifndef LIST_H
 #include "list.h"
-#endif
 #include <stdlib.h>
 #include <string.h>
 channel_list* global_channel_list = NULL;

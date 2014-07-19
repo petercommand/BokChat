@@ -1,7 +1,6 @@
+#ifndef COMMAND_H
 #define COMMAND_H
-#ifndef LIST_H
 #include "list.h"
-#endif
 typedef struct channel_list channel_list;
 typedef struct user_list user_list;
 typedef struct irc_argument{
@@ -21,3 +20,6 @@ typedef struct list_msg{
 
 void send_message(int error_num, user_info* user_inf, channel_info* channel_inf, char* cmd, irc_argument* irc_args);
 void motd(user_info* user_inf);
+
+
+#endif
