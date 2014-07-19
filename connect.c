@@ -228,7 +228,7 @@ int init_user(user_info* user_inf, char* buf){
 	      nick_already_set = 1;
 	      if(join_user_to_global_list(user_inf) != 0){
 		/*join to global list failed*/
-		/*not finished*/
+		/*not finished, send user message to mention that setting nick has failed*/
 	      }
 
 	    }
