@@ -181,6 +181,12 @@ void liveness_check_loop(){
     sleep(90);
     pthread_mutex_lock(&global_user_mutex);
     for(head = global_user_list;head != NULL; head = temp){
+      if(head->next != NULL){
+	temp = head->next;
+      }
+      else{
+	temp = NULL;
+      }
       diff = time(NULL) - head->user_info->liveness;
       printf("liveness thread: time difference: %ld\n", diff);
       if(diff > 270){/* user timeout */
@@ -192,12 +198,6 @@ void liveness_check_loop(){
 	pthread_mutex_lock(&head->user_info->sock_mutex);
 	irc_send(head->user_info->socket, msg, strlen(msg), MSG_DONTWAIT);
 	pthread_mutex_unlock(&head->user_info->sock_mutex);
-      }
-      if(head->next != NULL){
-	temp = head->next;
-      }
-      else{
-	temp = NULL;
       }
     }
     pthread_mutex_unlock(&global_user_mutex);

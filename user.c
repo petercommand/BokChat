@@ -42,6 +42,9 @@ int nick_change(user_info* user_inf, char* user_nick, int* error_num){
 }
 
 int quit_server(user_info* user_inf, char* reason){
+  if(is_user_in_global_user_list(user_inf) == 0){
+    return -1;
+  }
   if((reason == NULL) || (reason[0] == '\0')){
     char msg[] = "Client Quit";
     reason = msg;
