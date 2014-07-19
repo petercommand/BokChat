@@ -171,20 +171,46 @@ void client_connect(user_info* user_inf){
     }
    }
  error:
+  pthread_mutex_lock(&global_user_mutex);
   quit_server(user_inf, "Client Quit");
+  pthread_mutex_unlock(&global_user_mutex);
  quit:
   free(buf);
   free(cmd);
   free(msg);
+  free(msg2);
   pthread_exit(NULL);
 }
 
 void liveness_check_loop(){
+  user_list* head;
+  user_list* temp;
+  char msg[MAX_BUFFER];
+  time_t diff;
   while(1){
-    /* NOT finished*/
-    
-    pause();
-    
+    sleep(90);
+    pthread_mutex_lock(&global_user_mutex);
+    for(head = global_user_list;head != NULL; head = temp){
+      diff = time(NULL) - head->user_info->liveness;
+      printf("liveness thread: time difference: %ld\n", diff);
+      if(diff > 270){/* user timeout */
+	snprintf(msg, MAX_BUFFER, "Ping timeout: %ld seconds\r\n", diff);
+	quit_server(head->user_info, msg);
+      }
+      else if(diff > 90){/*send ping cmd */
+	snprintf(msg, MAX_BUFFER, "PING :%s\r\n", SERVER_NAME);
+	pthread_mutex_lock(&head->user_info->sock_mutex);
+	irc_send(head->user_info->socket, msg, strlen(msg), MSG_DONTWAIT);
+	pthread_mutex_unlock(&head->user_info->sock_mutex);
+      }
+      if(head->next != NULL){
+	temp = head->next;
+      }
+      else{
+	temp = NULL;
+      }
+    }
+    pthread_mutex_unlock(&global_user_mutex);
   }
   
 }
@@ -213,7 +239,7 @@ int get_cmd(int socket, char* buf, char* cmd, int* timeout){
       return -1;
     }
     if(FD_ISSET(socket, &set)){
-      recv_byte = irc_recv(socket, recv_cmd, MAX_BUFFER, MSG_DONTWAIT);/* already used the select call to block, thus recv should be set to nonblocking */
+      recv_byte = irc_recv(socket, recv_cmd, MAX_BUFFER - 1, MSG_DONTWAIT);/* already used the select call to block, thus recv should be set to nonblocking */
       if(recv_byte <= 0){
 	return -1;
       }
@@ -431,9 +457,11 @@ void reverse_dns(user_info* user_inf){/*this function do reverse and forward dns
       }
       send_message_by_type(user_inf, "NOTICE", "Found your hostname\r\n");
       printf("hostname: %s\n", hostname);
+      freeaddrinfo(result);
       return;
     }
   }
+  freeaddrinfo(result);
   return;
 
 

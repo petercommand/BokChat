@@ -55,7 +55,6 @@ int quit_server(user_info* user_inf, char* reason){
     reason = msg;
   }
   channel_list* joined_channels;
-  pthread_mutex_lock(&global_user_mutex);
   pthread_mutex_lock(&global_channel_mutex);
   
   channel_list* head;
@@ -99,7 +98,6 @@ int quit_server(user_info* user_inf, char* reason){
   free(user_inf);
   user_inf = NULL;
   pthread_mutex_unlock(&global_channel_mutex);
-  pthread_mutex_unlock(&global_user_mutex);
   return 0;
 }
 

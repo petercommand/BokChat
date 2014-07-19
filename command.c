@@ -355,10 +355,14 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
   }
   else if(strcmp(cmd, "QUIT") == 0){
     if(irc_args.trailing[0] == '\0'){
+      pthread_mutex_lock(&global_user_mutex);
       quit_server(user_inf, NULL);
+      pthread_mutex_unlock(&global_user_mutex);
     }
     else{
+      pthread_mutex_lock(&global_user_mutex);
       quit_server(user_inf, irc_args.trailing);
+      pthread_mutex_unlock(&global_user_mutex);
     }
     return -2;
   }
@@ -369,7 +373,7 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
   else if(strcmp(cmd, "PING") == 0){
     if(strcmp(irc_args.param, SERVER_NAME) == 0){/*client is pinging the server*/
       char buf[MAX_BUFFER];
-      snprintf(buf, MAX_BUFFER, "PONG %s\r\n", SERVER_NAME);
+      snprintf(buf, MAX_BUFFER, "PONG :%s\r\n", SERVER_NAME);
       pthread_mutex_lock(&user_inf->sock_mutex);
       irc_send(user_inf->socket, buf, strlen(buf), MSG_DONTWAIT);
       pthread_mutex_unlock(&user_inf->sock_mutex);
