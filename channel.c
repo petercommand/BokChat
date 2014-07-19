@@ -152,6 +152,19 @@ void send_message_to_all_users_in_channel(irc_channel_msg* channel_msg){/*rememb
     goto exit;
     
   }
+  else if(strcmp(message_type, "PART") == 0){
+    snprintf(buf, MAX_BUFFER-3, ":%s!%s@%s PART %s", user_inf->user_nick, user_inf->user_nick, user_inf->hostname, channel_inf->channel_name);
+    snprintf(buf2, MAX_BUFFER, "%s\r\n", buf);
+    pthread_mutex_lock(&global_channel_mutex);
+    user_list* head;
+    for(head = channel_msg->channel_info->joined_users;head != NULL;head = head->next){
+      send_message_to_user(head->user_info, buf2);
+    }
+    pthread_mutex_unlock(&global_channel_mutex);
+    goto exit;
+    
+  }
+
 
   else if(strcmp(message_type, "TOPIC") == 0){
     user_list* head;

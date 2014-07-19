@@ -166,6 +166,9 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     goto exit;
   }
   else if(strcmp(cmd, "JOIN") == 0){
+    if(irc_args.param[0] == '\0'){
+      goto error;
+    } 
     irc_channel_msg* channel_msg = (irc_channel_msg *)malloc(sizeof(irc_channel_msg));
     if(channel_msg == NULL){
       goto error;
@@ -176,11 +179,13 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
       channel_msg->message_type[i] = msg_type[i];
     }
     channel_msg->user_inf = user_inf;
-    for(i=0; irc_args.trailing[i] != '\0'; i++){
+    for(i=0; irc_args.param[i] != '\0'; i++){
       channel_msg->msg_body[i] = irc_args.param[i];
     }
     channel_msg->msg_body[i] = '\0';
+    pthread_mutex_lock(&global_channel_mutex);
     channel_info* channel_inf = channel_exist_by_name(irc_args.param);
+    pthread_mutex_unlock(&global_channel_mutex);
     if(channel_inf == NULL){
       if(strlen(irc_args.param) > MAX_CHAN_NAME_LENGTH){
 	goto error;
@@ -223,13 +228,12 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     char* topic = get_channel_topic(channel_inf);
     if(topic[0] == '\0'){
       send_message(331, user_inf, NULL, cmd, &irc_args);
-      pthread_mutex_unlock(&global_channel_mutex);
-      goto join_send_names;
     }
-    send_message(332, user_inf, channel_inf, cmd, &irc_args);
+    else{
+      send_message(332, user_inf, channel_inf, cmd, &irc_args);
+    }
     pthread_mutex_unlock(&global_channel_mutex);
-
-  join_send_names:
+    /*show channel names to user */ 
     names_command(user_inf, channel_inf, &irc_args);
 
 
@@ -248,6 +252,42 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     goto exit;
   }
   else if(strcmp(cmd, "PART") == 0){
+    if(irc_args.param[0] == '\0'){
+      goto error;
+    } 
+    irc_channel_msg* channel_msg = (irc_channel_msg *)malloc(sizeof(irc_channel_msg));
+    if(channel_msg == NULL){
+      goto error;
+    }
+    memset(channel_msg, 0, sizeof(*channel_msg));
+    const char* msg_type = "PART";
+    for(i=0;msg_type[i]!='\0';i++){
+      channel_msg->message_type[i] = msg_type[i];
+    }
+    channel_msg->user_inf = user_inf;
+    for(i=0; irc_args.param[i] != '\0'; i++){
+      channel_msg->msg_body[i] = irc_args.param[i];
+    }
+    channel_msg->msg_body[i] = '\0';
+    pthread_mutex_lock(&global_channel_mutex);
+    channel_info* channel_inf = channel_exist_by_name(irc_args.param);
+    pthread_mutex_unlock(&global_channel_mutex);
+    if(channel_inf == NULL){
+      send_message(403, user_inf, NULL, cmd, &irc_args);
+      goto error;
+    }
+    if(is_user_in_channel(user_inf, channel_inf) != 1){
+      /*user not in channel*/
+      goto error;
+    }
+    pthread_mutex_lock(&global_channel_mutex);
+    pthread_mutex_unlock(&global_channel_mutex);
+    channel_msg->channel_info = channel_inf;
+    send_message_to_all_users_in_channel(channel_msg);
+    quit_user_from_channel(user_inf, channel_inf);
+
+
+
     
     goto exit;
   }

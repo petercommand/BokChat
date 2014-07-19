@@ -497,12 +497,11 @@ void send_message_to_user(user_info* user_inf, char* msg_body){
 }
 
 void send_message_to_user_in_list(list_msg* user_list_msg){/*remember to free in callee*/
-  int i;
   user_list* user_lst = user_list_msg->user_lst;
   char* buf = user_list_msg->msg_body;
   while(user_lst != NULL){
     pthread_mutex_lock(&user_lst->user_info->sock_mutex);
-    i = irc_send(user_lst->user_info->socket, buf, strlen(buf), MSG_DONTWAIT);
+    irc_send(user_lst->user_info->socket, buf, strlen(buf), MSG_DONTWAIT);
     pthread_mutex_unlock(&user_lst->user_info->sock_mutex);
     if(user_lst->next != NULL){
       user_lst = user_lst->next;
