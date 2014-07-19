@@ -15,18 +15,18 @@
 #include "list.h"
 #endif
 #include <errno.h>
-char* get_cmd(int socket, char* buf, char* cmd);
+void get_cmd(int socket, char* buf, char* cmd);
 void client_connect_loop(int* sockfd_p);
 void client_connect(user_info* user_inf);
 void liveness_check_loop();
 int init_user(user_info* user_inf, char* buf);
 int line_terminated(char* input, int size);
+int null_terminated(char* input, int size);
 user_cmd parse_cmd(char* cmd);
-/*
-191. be sure to perform liveness(ping) check after each loop
-
-*/
 void server_mutex_init();
+ssize_t irc_recv(int sockfd, void* buf, size_t len, int flags);
+void trim_msg(char* buf, size_t len);
+int process_cmd(user_cmd cmd_info);
 void start_server(int sockfd){
   server_mutex_init();
   pthread_t client_connect_thread;
@@ -96,6 +96,12 @@ void client_connect_loop(int* sockfd_p){
 }
 void client_connect(user_info* user_inf){
   char* buf = (char *)malloc(MAX_BUFFER);
+  memset(buf, 0, MAX_BUFFER);
+  if(buf == NULL){
+    close(user_inf->socket);
+    free(user_inf);
+    pthread_exit(NULL);
+  }
   if(init_user(user_inf, buf) != 0){
 /* user have to send in NICK and USER command to the server to init_user function, this function shall initialize everything in the user_info struct for the user. If init_user return non-zero value, disconnect the user immediately */
     /* free everything*/
@@ -125,28 +131,38 @@ void liveness_check_loop(){
   }
   
 }
-char* get_cmd(int socket, char* buf, char* cmd){
+void get_cmd(int socket, char* buf, char* cmd){
+  memset(cmd, 0, sizeof(&cmd));
   int recv_byte = -1;
-  int term = -1;
-  recv_byte = recv(socket, buf, MAX_BUFFER, MSG_DONTWAIT);/* already used the select call to block, thus recv should be set to nonblocking */
+  int term_buf = -1;
+  int null_buf = -1;
+  char recv_cmd[MAX_BUFFER+1] = {'\0'};
+  recv_byte = irc_recv(socket, recv_cmd, MAX_BUFFER, MSG_DONTWAIT);/* already used the select call to block, thus recv should be set to nonblocking */
   if(recv_byte <= 0){
-    return NULL;
+    return;
   }
-  term = line_terminated(buf, recv_byte);
-  buf[term] = '\0';
-  printf("term:%d, recv_byte:%d\n", term, recv_byte);
-  if((term == -1) && (recv_byte == MAX_BUFFER)){/* have to truncate the input here*/
-    buf[MAX_BUFFER-1] = '\0';
-    strncpy(cmd, buf, MAX_BUFFER); 
-    return cmd;
+  trim_msg(recv_cmd, recv_byte);
+  strncat(buf, recv_cmd, MAX_BUFFER-strlen(buf)-1);
+  term_buf = line_terminated(buf, MAX_BUFFER);
+  null_buf = null_terminated(buf, MAX_BUFFER);
+  printf("term_buf: %d\nnull_buf: %d\n", term_buf, null_buf);
+  if((term_buf == -1) && (null_buf == (MAX_BUFFER-1))){
+    /* truncate and clear buf here */
+    strncpy(cmd, buf, MAX_BUFFER);
+    memset(buf, 0, sizeof(&buf));
+    return;
   }
-  if((term == -1) && (recv_byte < MAX_BUFFER)){/* no command is received here */
-    return NULL;
+  if((term_buf == -1) && (term_buf < (MAX_BUFFER-1))){
+    /* no command received */
+    return;
   }
-  strncpy(cmd, buf, recv_byte);
-  return cmd;
-
+  buf[term_buf] = '\0';
+  strncpy(cmd, buf, MAX_BUFFER);
+  memmove(buf, &buf[term_buf + 2], MAX_BUFFER - term_buf -1);
+  return;
 }
+    
+
 
 int valid_string(char* input){
   if(input == NULL){
@@ -186,21 +202,32 @@ int init_user(user_info* user_inf, char* buf){
   FD_SET(user_inf->socket, &set);
   struct timeval wait_time;
   while((nick == 0) || (user == 0)){
-    wait_time.tv_sec = 15;/*wait for 15 secs Remember to reset timer after every select call!*/
+    wait_time.tv_sec = 15;/*wait for 15 secs. Remember to reset timer after every select call!*/
     wait_time.tv_usec = 0;
     ready = select(user_inf->socket+1,  &set, NULL, NULL, &wait_time);
     if(ready < 0){
       return -1;
     }
     if(FD_ISSET(user_inf->socket, &set)){
-      cmd = get_cmd(user_inf->socket, buf, cmd);
+      get_cmd(user_inf->socket, buf, cmd);
       if(cmd != NULL){
 	cmd_info = parse_cmd(cmd);
 	printf("cmd:%s\ncmd_info->cmd:%s\ncmd_info->args:%s\n",cmd, cmd_info.cmd, cmd_info.args);
+	if(strcmp(cmd_info.cmd, "NICK") == 0){
+	  if(process_cmd(cmd_info) == 0){
+	    nick = 1;
+	  }
+	}
+	else if(strcmp(cmd_info.cmd, "USER") == 0){
+	  if(process_cmd(cmd_info) == 0){
+	    user = 1;
+	  }
+	}
+	  
       }
     }
 
-    if((time(NULL) - start_time) >= 60){
+    if((time(NULL) - start_time) >= 60){/*timeout value*/
       return -1;
     }
   }
@@ -220,12 +247,27 @@ int line_terminated(char* input, int size){
 }
 
 
+int null_terminated(char* input, int size){
+  int i;
+  int result = -1;
+  for(i=0;i<size;i++){
+    if(input[i] == '\0'){
+      result = i;
+      break;
+    }
+  }
+  return result;
+}
+
+
 user_cmd parse_cmd(char* cmd){/* note that we don't need to process the string when no space is present as it is surely a invald command */
   int i,j,k;
+  int space = 0;
   user_cmd cmd_info;
   memset(&cmd_info, 0, sizeof(cmd_info));
   for(i=0;cmd[i]!='\0';i++){
     if(cmd[i] == ' '){
+      space = 1;
       for(j=0;j<i;j++){
 	cmd_info.cmd[j] = cmd[j];
       }
@@ -241,9 +283,27 @@ user_cmd parse_cmd(char* cmd){/* note that we don't need to process the string w
       break;
     }
   }
+  if(space == 0){
+    for(i=0;cmd[i]!='\0';i++){
+      cmd_info.cmd[i] = cmd[i];
+    }
+  }
   return cmd_info;
 }
 
   
+void trim_msg(char* buf, size_t len){
+  /* This function trims character '\r' out the input buf */
+  int i = 0;
+  int j = 0;
+  for(i=0, j=0;(i<len) && (j<len);i++,j++){
+    if(buf[i] == '\r'){
+      j = j + 1;
+    }
+    buf[i] = buf[j];
+  }
+}
 
-
+ssize_t irc_recv(int sockfd, void* buf, size_t len, int flags){
+  return recv(sockfd, buf, len, flags);
+}
