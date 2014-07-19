@@ -4,6 +4,9 @@
 #ifndef MAIN_H
 #include "main.h"
 #endif
+#ifndef COMMAND_H
+#include "command.h"
+#endif
 
 int create_channel(channel_info* channel_info){
   /*append channel to global channel list*/
@@ -36,7 +39,7 @@ int create_channel(channel_info* channel_info){
 
 }
 
-int join_user_to_channel(user_info* user_info, channel_info* channel_info){
+int join_user_to_channel(user_info* user_info, channel_info* channel_info, int* error_num){
   /*update user_info->joined_channels & update channel user list*/
   user_list* channel_user_list;
   channel_user_list = channel_info->joined_users;
@@ -141,7 +144,16 @@ int quit_user_from_channel(user_info* user_info, channel_info* channel_info){
 
 
 }
+int is_user_in_channel(user_info* user_info, channel_info* channel_info){
+  user_list* channel_user;
+  for(channel_user = channel_info->joined_users;channel_user != NULL;channel_user = channel_user->next){
+    if(channel_user->user_info == user_info){
+      return 1;
+    }
+  }
+  return 0;
 
+}
 
 int is_user_op_in_channel(user_info* user_info, channel_info* channel_info){
   user_list* channel_op;
@@ -153,14 +165,14 @@ int is_user_op_in_channel(user_info* user_info, channel_info* channel_info){
   return 0;
 
 }
-int if_channel_exist_by_name(char* channel_name){
+channel_info* channel_exist_by_name(char* channel_name){
   channel_list* channel_list;
   for(channel_list = global_channel_list;channel_list != NULL;channel_list = channel_list->next){
     if(strcmp(channel_list->channel_info->channel_name, channel_name) == 0){
-      return 1;
+      return channel_list->channel_info;
     }
   }
-  return 0;
+  return NULL;
 }
 
 char* get_channel_topic(channel_info* channel_info){
@@ -179,4 +191,11 @@ int set_channel_topic(channel_info* channel_info, char* topic){
   else{
     return -1;
   }
+}
+void send_message_to_all_users_in_channel(irc_channel_privmsg* channel_msg){/*remember to free channel_msg after using it */
+
+
+
+
+
 }

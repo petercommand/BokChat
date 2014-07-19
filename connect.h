@@ -2,6 +2,9 @@
 #ifndef CONFIG_H
 #include "config.h"
 #endif
+#ifndef LIST_H
+#include "list.h"
+#endif
 int listen_bind_on_port(int port);
 void start_server(int sockfd);
 int valid_string(char* input);
@@ -12,3 +15,4 @@ typedef struct struct_user_cmd{
 
 int valid_channel(char* input);
 int valid_nick(char* input);
+void send_message_to_user(user_info* user_inf, char* msg_body);

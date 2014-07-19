@@ -1,5 +1,5 @@
 /* make change to the necessary structs and return the necessary data*/
-/*return int to reflect the result of the command procession */
+/*return int to reflect the result of command processing */
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -24,9 +24,9 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
   char* args = cmd_info.args;
   int error_num;
   irc_argument irc_args = parse_argument(args);
-/*  if((irc_args.param[0] == '\0') && (irc_args.trailing[0] == '\0')){
+  if((irc_args.param[0] == '\0') && (irc_args.trailing[0] == '\0')){
     return -1;
-    }*/
+  }
   if(strcmp(cmd, "NICK") == 0){
     if(nick_change(user_inf, irc_args.param, &error_num) == 0){      
       goto exit;
@@ -35,8 +35,24 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     goto error;
   }
   else if(strcmp(cmd, "PRIVMSG") == 0){
-    
-    goto exit;
+    if(irc_args.param[0] == '#'){/*channel*/
+      channel_info* channel_inf = channel_exist_by_name(irc_args.param);
+      if(channel_inf == NULL){
+	send_message(403, user_inf, cmd, &irc_args);
+	goto error;
+      }
+      if(is_user_in_channel(user_inf, channel_inf) == 0){
+	send_message(404, user_inf, cmd, &irc_args);
+	goto error;
+      }
+      /* send to all users in channel */
+
+    }
+    else{/*person*/
+
+
+
+    }
   }
   else if(strcmp(cmd, "USER") == 0){
     if(user_already_exist_in_global_user_list(user_inf, &error_num)){

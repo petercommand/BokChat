@@ -451,40 +451,99 @@ ssize_t irc_recv(int sockfd, void* buf, size_t len, int flags){
 ssize_t irc_send(int sockfd, const void *buf, size_t len, int flags){
   return send(sockfd, buf, len, flags);
 }
+void send_message_to_user(user_info* user_inf, char* msg_body){
+  pthread_mutex_lock(&user_inf->sock_mutex);
+  irc_send(user_inf->socket, msg_body, strlen(msg_body), 0);
+  pthread_mutex_unlock(&user_inf->sock_mutex);
+
+
+}
+
 void send_message_by_type(user_info* user_inf, const char* msg_type, char* msg_body){
   int sockfd = user_inf->socket;
   char buf[MAX_BUFFER];
   char buf2[MAX_BUFFER];
+  pthread_mutex_lock(&user_inf->sock_mutex);
   if(strcmp(msg_type, "NOTICE") == 0){
     snprintf(buf, sizeof(buf), ":%s NOTICE * :*** %s", SERVER_NAME, msg_body);
-    pthread_mutex_lock(&user_inf->sock_mutex);
+    irc_send(sockfd, buf, strlen(buf), 0);
+    goto exit;
+  }
+  if(strcmp(msg_type, "MOTD") == 0){
+    snprintf(buf, sizeof(buf), ":%s 372 :- %s", SERVER_NAME, msg_body);
     irc_send(sockfd, buf, strlen(buf), 0);
     goto exit;
   }
   else if(strcmp(msg_type, "PING") == 0){
-    pthread_mutex_lock(&user_inf->sock_mutex);
-
+    
     goto exit;
   }
   else if(strcmp(msg_type, "PRIVMSG") == 0){
-    pthread_mutex_lock(&user_inf->sock_mutex);
+    
     goto exit;
   }
  exit:
   pthread_mutex_unlock(&user_inf->sock_mutex);
   return;
-
+  
 }
 void send_message_by_number(int num, user_info* user_inf, char* msg_body){
   int sockfd = user_inf->socket;
   char msg[MAX_BUFFER];
-  snprintf(msg, sizeof(msg), ":%s %d %s\r\n", SERVER_NAME, num, msg_body);
+  snprintf(msg, sizeof(msg), ":%s %d %s %s", SERVER_NAME, num, user_inf->user_nick, msg_body);
   pthread_mutex_lock(&user_inf->sock_mutex);
   irc_send(sockfd, msg, strlen(msg), 0);
   pthread_mutex_unlock(&user_inf->sock_mutex);
 
 
 }
+
+
+void motd(user_info* user_inf){
+  char buf[MAX_BUFFER] = {0};
+  int i;
+  char* motd[] = {"Welcome to rlhsu.cupcake.\r\n\r\n\r\n\r\n",
+		  "Welcome to rlhsu\r\n",
+		  "By connecting to this server, you indicate that you\r\n",
+		  "have agreed the following terms set forth by the server owner\r\n",
+		  "Disclaimer:\r\n",
+		  "THERE IS NO WARRANTY FOR THE USE OF THIS SERVER, TO THE\r\n",
+		  "EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE\r\n",
+		  "STATED IN WRITING, THIS SERVER IS PROVIDED \"AS IS\"\r\n",
+		  "WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,\r\n",
+		  "INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES FOR\r\n",
+		  "A PARTICULAR PURPOSE.\r\n\r\n",
+		  "In accordance with ROC law, rlhsu has no tolerance for any\r\n",
+		  "activity which could be construed as:\r\n",
+		  "    *incitement to racial hatred\r\n",
+		  "    *incitement to religious hatred\r\n",
+		  "    *any behaviour meant to deliberately bring\r\n",
+		  "     upon a person harassment, alarm or distress.\r\n",
+		  "    *any form of discrimination on the ground of\r\n",
+		  "     race, religion, gender, sexual preference or\r\n",
+		  "     other lifestyle choices\r\n\r\n",
+		  "This server is the first project I ever\r\n",
+		  "made in the C language\r\n",
+		  "If there are any problem with my server,\r\n",
+		  "please email to me.\r\n",
+		  "May you have a good time on this server!\r\n"
+  };
+  snprintf(buf, sizeof(buf), ":- %s Message of the Day\r\n", SERVER_NAME);
+  send_message_by_number(375, user_inf, buf);
+  for(i=0;i<(sizeof(motd)/sizeof(char*));i++){
+    send_message_by_type(user_inf, "MOTD", motd[i]);
+  }
+  snprintf(buf, sizeof(buf), ":End of /MOTD command\r\n");
+  send_message_by_number(376, user_inf, buf);
+}
+
+
+
+
+
+
+
+
 void send_message(int error_num, user_info* user_inf, char* cmd, irc_argument* irc_args){
   char msg[MAX_BUFFER] = {0};
   char msg2[MAX_BUFFER] = {0};
@@ -495,8 +554,18 @@ void send_message(int error_num, user_info* user_inf, char* cmd, irc_argument* i
   case 402:
     break;
   case 403:
+    snprintf(msg, sizeof(msg)-3, ":%s 403 %s :No such channel", SERVER_NAME, irc_args->param);
+    snprintf(msg2, sizeof(msg), "%s\r\n", msg);
+    pthread_mutex_lock(&user_inf->sock_mutex);
+    irc_send(sockfd, msg2, strlen(msg2), 0);
+    pthread_mutex_unlock(&user_inf->sock_mutex);
     break;
   case 404:
+    snprintf(msg, sizeof(msg)-3, ":%s 404 %s :Cannot send to channel", SERVER_NAME, irc_args->param);
+    snprintf(msg2, sizeof(msg), "%s\r\n", msg);
+    pthread_mutex_lock(&user_inf->sock_mutex);
+    irc_send(sockfd, msg2, strlen(msg2), 0);
+    pthread_mutex_unlock(&user_inf->sock_mutex);
     break;
   case 405:
     break;
@@ -515,7 +584,7 @@ void send_message(int error_num, user_info* user_inf, char* cmd, irc_argument* i
   case 414:
     break;
   case 421:
-    snprintf(msg, sizeof(msg)-strlen(SERVER_NAME)-5, ":%s 421 %s :Unknown command", SERVER_NAME, cmd);
+    snprintf(msg, sizeof(msg)-3, ":%s 421 %s :Unknown command", SERVER_NAME, cmd);
     snprintf(msg2, sizeof(msg2), "%s\r\n", msg);
     pthread_mutex_lock(&user_inf->sock_mutex);
     irc_send(sockfd, msg2, strlen(msg2), 0);
@@ -528,21 +597,21 @@ void send_message(int error_num, user_info* user_inf, char* cmd, irc_argument* i
   case 424:
     break;
   case 431:
-    snprintf(msg, sizeof(msg)-strlen(SERVER_NAME)-5, ":%s 431 :No nickname given", SERVER_NAME);
+    snprintf(msg, sizeof(msg)-3, ":%s 431 :No nickname given", SERVER_NAME);
     snprintf(msg2, sizeof(msg2), "%s\r\n", msg);
     pthread_mutex_lock(&user_inf->sock_mutex);
     irc_send(sockfd, msg2, strlen(msg2), 0);
     pthread_mutex_unlock(&user_inf->sock_mutex);
     break;
   case 432:
-    snprintf(msg, sizeof(msg)-strlen(SERVER_NAME)-5, ":%s 432 %s :Erroneus nickname", SERVER_NAME, irc_args->param);
+    snprintf(msg, sizeof(msg)-3, ":%s 432 %s :Erroneus nickname", SERVER_NAME, irc_args->param);
     snprintf(msg2, sizeof(msg2), "%s\r\n", msg);
     pthread_mutex_lock(&user_inf->sock_mutex);
     irc_send(sockfd, msg2, strlen(msg2), 0);
     pthread_mutex_unlock(&user_inf->sock_mutex);
     break;
   case 433:
-    snprintf(msg, sizeof(msg)-strlen(SERVER_NAME)-5, ":%s 433 %s :Nickname is already in use", SERVER_NAME, irc_args->param);
+    snprintf(msg, sizeof(msg)-3, ":%s 433 %s :Nickname is already in use", SERVER_NAME, irc_args->param);
     snprintf(msg2, sizeof(msg2), "%s\r\n", msg);
     pthread_mutex_lock(&user_inf->sock_mutex);
     irc_send(sockfd, msg2, strlen(msg2), 0);

@@ -12,7 +12,8 @@ typedef struct channel_info{
 }channel_info;
 
 int create_channel(channel_info* channel_info);
-int join_user_to_channel(user_info* user_info, channel_info* channel_info);
+int join_user_to_channel(user_info* user_info, channel_info* channel_info, int* error_num);
 int quit_user_from_channel(user_info* user_info, channel_info* channel_info);
 int is_user_op_in_channel(user_info* user_info, channel_info* channel_info);
-int if_channel_exist_by_name(char* channel_name);
+channel_info* channel_exist_by_name(char* channel_name);
+int is_user_in_channel(user_info* user_info, channel_info* channel_info);
