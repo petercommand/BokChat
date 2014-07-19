@@ -10,6 +10,9 @@
 #ifndef CONNECT_H
 #include "connect.h"
 #endif
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 int create_channel(channel_info* channel_info){
   /*append channel to global channel list*/
   channel_list* head = global_channel_list;
@@ -41,7 +44,7 @@ int create_channel(channel_info* channel_info){
 
 }
 
-int join_user_to_channel(user_info* user_info, channel_info* channel_info, int* error_num){
+int join_user_to_channel(user_info* user_info, channel_info* channel_info){
   /*update user_info->joined_channels & update channel user list*/
   user_list* channel_user_list;
   channel_user_list = channel_info->joined_users;
@@ -197,7 +200,13 @@ int set_channel_topic(channel_info* channel_info, char* topic){
 void send_message_to_all_users_in_channel(irc_channel_privmsg* channel_msg){/*remember to free channel_msg after using it */
   char buf[MAX_BUFFER];
   char buf2[MAX_BUFFER];
-  snprintf(buf, MAX_BUFFER-3, "PRIVMSG %s :%s", channel_msg->user_inf->user_nick, channel_msg->msg_body);
+  user_info* user_inf = channel_msg->user_inf;
+  if(channel_msg->user_inf->hostname[0] != '\0'){
+    snprintf(buf, MAX_BUFFER-3, "%s!%s@%s PRIVMSG %s :%s", user_inf->user_nick, user_inf->user_nick, user_inf->hostname, channel_msg->channel_info->channel_name, channel_msg->msg_body);
+  }
+  else{
+    snprintf(buf, MAX_BUFFER-3, "%s!%s@%s PRIVMSG %s :%s", user_inf->user_nick, user_inf->user_nick, inet_ntoa(((struct sockaddr_in *)&user_inf->client_addr)->sin_addr), channel_msg->channel_info->channel_name, channel_msg->msg_body);
+  }
   snprintf(buf, MAX_BUFFER, "%s\r\n", buf);
   pthread_mutex_lock(&global_channel_mutex);
   user_list* head;

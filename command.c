@@ -64,7 +64,7 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
       
     }
     else{/*person*/
-
+      
 
 
     }
@@ -78,11 +78,23 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
       send_message(461, user_inf, cmd, &irc_args);
       goto error;
     }
+    join_user_to_global_list(user_inf);
     goto exit;
 
   }
   else if(strcmp(cmd, "JOIN") == 0){
-    
+    channel_info* channel_inf = channel_exist_by_name(irc_args.param);
+    if(channel_inf == NULL){
+      send_message(403, user_inf, cmd, &irc_args);
+      goto error;
+    }
+    if(is_user_in_channel(user_inf, channel_inf) == 1){
+      send_message(443, user_inf, cmd, &irc_args);
+      goto error;
+    }
+    if(join_user_to_channel(user_inf, channel_inf) != 0){
+      goto error;
+    }
     goto exit;
   }
   else if(strcmp(cmd, "PART") == 0){
@@ -95,6 +107,10 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
   }
   else if(strcmp(cmd, "QUIT") == 0){
     
+    goto exit;
+  }
+  else if(strcmp(cmd, "MOTD") == 0){
+    motd(user_inf);
     goto exit;
   }
 

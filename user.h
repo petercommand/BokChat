@@ -10,7 +10,7 @@
 typedef struct channel_list channel_list;
 typedef struct user_info{
   pthread_t user_thread;
-  char* user_nick;
+  char user_nick[MAX_NICK_LENGTH+1];
   int socket;
   channel_list* joined_channels;
   pthread_mutex_t sock_mutex;

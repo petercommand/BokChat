@@ -38,9 +38,14 @@ int nick_change(user_info* user_inf, char* user_nick, int* error_num){
     *error_num = 433;
     return -1;
   }
-  user_inf->user_nick = user_nick;
+  int i;
+  for(i=0;user_nick[i]!='\0';i++){
+    user_inf->user_nick[i] = user_nick[i];
+  }
+  user_inf->user_nick[i] = '\0';
   return 0;
 }
+
 int quit_server(user_info* user_inf){
   channel_list* joined_channels;
   for(joined_channels = user_inf->joined_channels;joined_channels != NULL;joined_channels = joined_channels->next){

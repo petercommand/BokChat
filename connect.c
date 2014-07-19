@@ -21,7 +21,7 @@
 #include <signal.h>
 #include <errno.h>
 #define SERVER_NAME "rlhsu.cukcake"
-int get_cmd(int socket, char* buf, char* cmd);
+int get_cmd(int socket, char* buf, char* cmd, int* timeout);
 void client_connect_loop(int* sockfd_p);
 void client_connect(user_info* user_inf);
 void liveness_check_loop();
@@ -40,7 +40,7 @@ void send_message_by_type(user_info* user_inf, const char* msg_type, char* msg_b
 void send_message_by_number(int num, user_info* user_inf, char* msg_body);
 void send_message(int error_num, user_info* user_inf, char* cmd, irc_argument* irc_args);
 void print_hex(char *input);
-
+void motd(user_info* user_inf);
 
 void start_server(int sockfd){
   server_mutex_init();
@@ -119,33 +119,59 @@ void client_connect_loop(int* sockfd_p){
 }
 void client_connect(user_info* user_inf){
   char* buf = (char *)malloc(MAX_BUFFER);
-  memset(buf, 0, MAX_BUFFER);
-  if(buf == NULL){
-    close(user_inf->socket);
-    free(user_inf);
-    pthread_exit(NULL);
+  char* cmd = (char *)malloc(MAX_BUFFER);
+  char* msg = (char *)malloc(MAX_BUFFER);
+  char* msg2 = (char *)malloc(MAX_BUFFER);
+  int get_cmd_num;
+  if((buf == NULL) || (cmd == NULL) || (msg == NULL)){
+    goto error;
   }
+  memset(buf, 0, MAX_BUFFER);
+  memset(cmd, 0, MAX_BUFFER);
+  memset(msg, 0, MAX_BUFFER);
   if(init_user(user_inf, buf) != 0){
 /* user have to send in NICK and USER command to the server to init_user function, this function shall initialize everything in the user_info struct for the user. If init_user return non-zero value, disconnect the user immediately */
-    /* free everything*/
-    pthread_mutex_lock(&user_inf->sock_mutex);
-    close(user_inf->socket);
-    pthread_mutex_unlock(&user_inf->sock_mutex);
-    pthread_mutex_destroy(&user_inf->sock_mutex);
-    free(buf);
-    free(user_inf);
-    pthread_exit(NULL);
+    goto error;
   }
-  
+  snprintf(msg, MAX_BUFFER -3, ":Welcome to the rlhsu Internet Relay Chat Network %s", user_inf->user_nick);
+  snprintf(msg2, MAX_BUFFER, "%s\r\n", msg);
+  send_message_by_number(001, user_inf, msg2);
+  snprintf(msg, MAX_BUFFER, ":Your host is %s, running version rlhsu-1.0.0\r\n", SERVER_NAME);
+  send_message_by_number(002, user_inf, msg);
+  motd(user_inf);
 
 
+
+  while(1){
+    get_cmd_num = get_cmd(user_inf->socket, buf, cmd, NULL);/*blocks until it receives command */
+    if(get_cmd_num == -1){
+      goto error;
+    }
+    if(get_cmd_num == -2){
+      continue;
+    }
+
+    user_cmd cmd_info = parse_cmd(cmd);      
+    process_cmd(cmd_info, user_inf); 
+ 
+ 
+ 
+ 
 
 
   /*NOT finished*/
   
   
-  
-  return;
+  }
+ error:
+  pthread_mutex_lock(&user_inf->sock_mutex);
+  close(user_inf->socket);
+  pthread_mutex_unlock(&user_inf->sock_mutex);
+  free(user_inf);
+  free(buf);
+  free(cmd);
+  free(msg);
+  pthread_exit(NULL);
 }
 
 void liveness_check_loop(){
@@ -157,7 +183,7 @@ void liveness_check_loop(){
   }
   
 }
-int get_cmd(int socket, char* buf, char* cmd){
+int get_cmd(int socket, char* buf, char* cmd, int* timeout){
   memset(cmd, 0, sizeof(&cmd));
   int recv_byte = -1;
   int term_buf = -1;
@@ -170,9 +196,14 @@ int get_cmd(int socket, char* buf, char* cmd){
     struct timeval wait_time;
     FD_ZERO(&set);
     FD_SET(socket, &set);
-    wait_time.tv_sec = 15;/*wait for 15 secs. Remember to reset timer after every select call!*/
-    wait_time.tv_usec = 0;
-    ready = select(socket+1,  &set, NULL, NULL, &wait_time);
+    if(timeout != NULL){
+      wait_time.tv_sec = *timeout;
+      wait_time.tv_usec = 0;
+      ready = select(socket+1,  &set, NULL, NULL, &wait_time);
+    }
+    else{
+      ready = select(socket+1, &set, NULL, NULL, NULL);
+    }
     if(ready < 0){
       return -1;
     }
@@ -293,6 +324,9 @@ int init_user(user_info* user_inf, char* buf){
   int nick = 0;
   int user = 0;
   char* cmd = (char *)malloc(MAX_BUFFER);
+  if(cmd == NULL){
+    goto error;
+  }
   user_cmd cmd_info;
   memset(&cmd_info, 0, sizeof(cmd_info));
   if(cmd == NULL){
@@ -301,7 +335,8 @@ int init_user(user_info* user_inf, char* buf){
   pthread_t user_dns;
   pthread_create(&user_dns, NULL, (void *(*)(void *))reverse_dns, (void *)user_inf);
   while((nick == 0) || (user == 0)){
-    get_cmd_num = get_cmd(user_inf->socket, buf, cmd);
+    int timeout = 15;
+    get_cmd_num = get_cmd(user_inf->socket, buf, cmd, &timeout);
     if(get_cmd_num == -1){
       goto error;
     }
@@ -325,6 +360,9 @@ int init_user(user_info* user_inf, char* buf){
 	  user = 1;
 	}
 	pthread_mutex_unlock(&global_user_mutex);
+      }
+      else if(strcmp(cmd_info.cmd, "CAP") == 0){/* currently we are ignoring irc cap command, might implement it in the future */
+	continue;
       }
       else{
 	send_message(451, user_inf, NULL, NULL);
@@ -436,7 +474,7 @@ user_cmd parse_cmd(char* cmd){
 
   
 void trim_msg(char* buf, size_t len){
-  /* This function trims character '\r' out the input buf */
+  /* This function replaces character '\r' from the input buf */
   int i = 0;
   for(i=0;i<len;i++){
     if((unsigned int)buf[i] == 13){
@@ -478,10 +516,7 @@ void send_message_by_type(user_info* user_inf, const char* msg_type, char* msg_b
     
     goto exit;
   }
-  else if(strcmp(msg_type, "PRIVMSG") == 0){
-    
-    goto exit;
-  }
+
  exit:
   pthread_mutex_unlock(&user_inf->sock_mutex);
   return;
@@ -505,11 +540,11 @@ void motd(user_info* user_inf){
   char* motd[] = {"Welcome to rlhsu.cupcake.\r\n\r\n\r\n\r\n",
 		  "Welcome to rlhsu\r\n",
 		  "By connecting to this server, you indicate that you\r\n",
-		  "have agreed the following terms set forth by the server owner\r\n",
+		  "have agreed the following terms set forth by the service owner\r\n",
 		  "Disclaimer:\r\n",
-		  "THERE IS NO WARRANTY FOR THE USE OF THIS SERVER, TO THE\r\n",
+		  "THERE IS NO WARRANTY FOR THE USE OF THIS SERVICE, TO THE\r\n",
 		  "EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE\r\n",
-		  "STATED IN WRITING, THIS SERVER IS PROVIDED \"AS IS\"\r\n",
+		  "STATED IN WRITING, THIS SERVICE IS PROVIDED \"AS IS\"\r\n",
 		  "WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,\r\n",
 		  "INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES FOR\r\n",
 		  "A PARTICULAR PURPOSE.\r\n\r\n",

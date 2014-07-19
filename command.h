@@ -14,3 +14,4 @@ typedef struct irc_channel_privmsg{
 
 
 void send_message(int error_num, user_info* user_inf, char* cmd, irc_argument* irc_args);
+void motd(user_info* user_inf);
