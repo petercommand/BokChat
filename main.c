@@ -52,21 +52,7 @@ int main(int argc, char *argv[]){
     fprintf(stderr, "Either binding or listening has failed\n%s\nQuitting...\n", strerror(errno));
     exit(1);
   }
- 
-
-  /* after listening on port specified, we have to get the data here*/
-
-  
-
-  
-  
-  
+  printf("Starting server...\n");
   start_server(sockfd);
-  
-  
-  
-  
-  
-  
   return 0;
 }

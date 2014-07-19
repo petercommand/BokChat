@@ -19,7 +19,7 @@ void client_connect_loop(int* sockfd_p);
 void client_connect(user_info* user_inf);
 /*
 191. be sure to perform liveness(ping) check after each loop
-192. should use event based management
+
 */
 void server_mutex_init();
 void start_server(int sockfd){
@@ -88,7 +88,13 @@ void client_connect_loop(int* sockfd_p){
   }
 }
 void client_connect(user_info* user_inf){
-  
+  /* attach client to global user list (remember mutex)
+     
 
 
+
+
+   */
+
+  return;
 }
