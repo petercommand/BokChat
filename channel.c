@@ -7,7 +7,9 @@
 #ifndef COMMAND_H
 #include "command.h"
 #endif
-
+#ifndef CONNECT_H
+#include "connect.h"
+#endif
 int create_channel(channel_info* channel_info){
   /*append channel to global channel list*/
   channel_list* head = global_channel_list;
@@ -193,7 +195,18 @@ int set_channel_topic(channel_info* channel_info, char* topic){
   }
 }
 void send_message_to_all_users_in_channel(irc_channel_privmsg* channel_msg){/*remember to free channel_msg after using it */
-
+  char buf[MAX_BUFFER];
+  char buf2[MAX_BUFFER];
+  snprintf(buf, MAX_BUFFER-3, "PRIVMSG %s :%s", channel_msg->user_inf->user_nick, channel_msg->msg_body);
+  snprintf(buf, MAX_BUFFER, "%s\r\n", buf);
+  pthread_mutex_lock(&global_channel_mutex);
+  user_list* head;
+  for(head = channel_msg->channel_info->joined_users;head != NULL;head = head->next){
+    send_message_to_user(head->user_info, buf2);
+  }
+  pthread_mutex_unlock(&global_channel_mutex);
+  free(channel_msg);
+  channel_msg = NULL;
 
 
 

@@ -46,7 +46,22 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
 	goto error;
       }
       /* send to all users in channel */
-
+      irc_channel_privmsg* channel_msg = (irc_channel_privmsg *)malloc(sizeof(irc_channel_privmsg));
+      if(channel_msg == NULL){
+	goto error;
+      }
+      memset(channel_msg, 0, sizeof(*channel_msg));
+      channel_msg->channel_info = channel_inf;
+      channel_msg->user_inf = user_inf;
+      int i;
+      for(i=0; irc_args.trailing[i] != '\0'; i++){
+	channel_msg->msg_body[i] = irc_args.trailing[i];
+      }
+      channel_msg->msg_body[i] = '\0';
+      pthread_t privmsg;
+      pthread_create(&privmsg, NULL, (void *(*)(void *))send_message_to_all_users_in_channel, (void *)channel_msg);
+      
+      
     }
     else{/*person*/
 
