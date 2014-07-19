@@ -1,6 +1,10 @@
-#ifndef CONNECT_H
 #define CONNECT_H
+#ifndef CONFIG_H
+#include "config.h"
 #endif
-
 int listen_bind_on_port(int port);
 void start_server(int sockfd);
+typedef struct struct_user_cmd{
+  char cmd[MAX_BUFFER];
+  char args[MAX_BUFFER];
+}user_cmd;

@@ -16,13 +16,6 @@
 
 
 
-
-
-
-
-
-
-
 int main(int argc, char *argv[]){
 
   if(geteuid() == 0){
