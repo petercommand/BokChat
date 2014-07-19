@@ -147,19 +147,20 @@ void client_connect(user_info* user_inf){
     }
     pthread_mutex_lock(&global_user_mutex);
     update_user_liveness(user_inf);
-    pthread_mutex_unlock(&global_user_mutex);
     if(get_cmd_num == -2){
+      pthread_mutex_unlock(&global_user_mutex);
       continue;
     }
 
     user_cmd cmd_info = parse_cmd(cmd);   
     printf("cmd_info->cmd:%s\ncmd_info->args:%s\n", cmd_info.cmd, cmd_info.args);   
     if(process_cmd(cmd_info, user_inf) == -2){
+      pthread_mutex_unlock(&global_user_mutex);
       goto quit;
     }
+    pthread_mutex_unlock(&global_user_mutex);
    }
  error:
-  pthread_mutex_lock(&global_user_mutex);
   quit_server(user_inf, "Client Quit");
   pthread_mutex_unlock(&global_user_mutex);
  quit:

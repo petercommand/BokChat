@@ -58,7 +58,6 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
       old_nick[i] = user_inf->user_nick[i];
     }
     old_nick[i] = '\0';
-    pthread_mutex_lock(&global_user_mutex);
     if(nick_change(user_inf, irc_args.param, &error_num) == 0){ 
       pthread_mutex_lock(&global_channel_mutex);
       
@@ -75,10 +74,9 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
 	}
       }
       pthread_mutex_unlock(&global_channel_mutex);
-      pthread_mutex_unlock(&global_user_mutex);
       list_msg* nick_list_msg = (list_msg *)malloc(sizeof(list_msg));
       if(nick_list_msg == NULL){
-	return error;
+	goto error;
       }
       char msg[MAX_BUFFER] = {0};
       memset(nick_list_msg, 0, sizeof(list_msg));
@@ -93,7 +91,6 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
 
       goto exit;
     }
-    pthread_mutex_unlock(&global_user_mutex);
     send_message(error_num, user_inf, NULL, cmd, &irc_args);
     goto error;
   }
@@ -142,19 +139,15 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     }
   }
   else if(strcmp(cmd, "USER") == 0){
-    pthread_mutex_lock(&global_user_mutex);
     if(is_user_in_global_user_list(user_inf)){
       /*might have some problem here, fix it */
-      pthread_mutex_unlock(&global_user_mutex);
       goto error;
     }
     if((irc_args.param[0] == '\0') || (irc_args.trailing[0] == '\0')){
-      pthread_mutex_unlock(&global_user_mutex); 
       send_message(461, user_inf, NULL, cmd, &irc_args);
       goto error;
     }
     join_user_to_global_list(user_inf);
-    pthread_mutex_unlock(&global_user_mutex);
     goto exit;
   }
   else if(strcmp(cmd, "JOIN") == 0){
@@ -347,14 +340,10 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
   }
   else if(strcmp(cmd, "QUIT") == 0){
     if(irc_args.trailing[0] == '\0'){
-      pthread_mutex_lock(&global_user_mutex);
       quit_server(user_inf, NULL);
-      pthread_mutex_unlock(&global_user_mutex);
     }
     else{
-      pthread_mutex_lock(&global_user_mutex);
       quit_server(user_inf, irc_args.trailing);
-      pthread_mutex_unlock(&global_user_mutex);
     }
     return -2;
   }
