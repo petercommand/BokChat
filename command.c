@@ -354,8 +354,13 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     goto exit;
   }
   else if(strcmp(cmd, "QUIT") == 0){
-    
-    goto exit;
+    if(irc_args.trailing[0] == '\0'){
+      quit_server(user_inf, NULL);
+    }
+    else{
+      quit_server(user_inf, irc_args.trailing);
+    }
+    return -2;
   }
   else if(strcmp(cmd, "MOTD") == 0){
     motd(user_inf);

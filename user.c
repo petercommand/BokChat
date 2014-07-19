@@ -10,6 +10,8 @@
 extern user_list* global_user_list;
 extern channel_list* global_channel_list;
 extern pthread_mutex_t global_user_mutex;
+extern pthread_mutex_t global_channel_mutex;
+
 
 int nick_exist(char* user_nick, int* error_num){
   user_list* head;
@@ -47,10 +49,38 @@ int nick_change(user_info* user_inf, char* user_nick, int* error_num){
   return 0;
 }
 
-int quit_server(user_info* user_inf){
+int quit_server(user_info* user_inf, char* reason){
+  if((reason == NULL) || (reason[0] == '\0')){
+    char msg[] = "Client Quit";
+    reason = msg;
+  }
   channel_list* joined_channels;
   pthread_mutex_lock(&global_user_mutex);
   pthread_mutex_lock(&global_channel_mutex);
+  
+  channel_list* head;
+  user_list* head2;
+  user_list* user_lst = NULL;
+  add_node_to_user_list(&user_lst, user_inf);
+  for(head = user_inf->joined_channels;head!=NULL;head = head->next){
+    for(head2 = head->channel_info->joined_users;head2 != NULL;head2 = head2->next){
+      if(is_node_in_user_list(user_lst, head2->user_info) == 0){
+	add_node_to_user_list(&user_lst, head2->user_info);
+      }
+    }
+  }
+  
+  list_msg* quit_list_msg = (list_msg *)malloc(sizeof(list_msg));
+  if(quit_list_msg == NULL){
+    return -1;
+  }
+  char msg[MAX_BUFFER] = {0};
+  memset(quit_list_msg, 0, sizeof(list_msg));
+  snprintf(msg, MAX_BUFFER -3, ":%s!%s@%s QUIT :%s", user_inf->user_nick, user_inf->user_nick, user_inf->hostname, reason);
+  snprintf(quit_list_msg->msg_body, MAX_BUFFER, "%s\r\n", msg);
+  quit_list_msg->user_lst = user_lst;
+  send_message_to_user_in_list(quit_list_msg);
+
   channel_list* temp;
   for(joined_channels = user_inf->joined_channels;joined_channels != NULL;joined_channels = temp){
     if(joined_channels->next != NULL){

@@ -157,16 +157,20 @@ void client_connect(user_info* user_inf){
     if(get_cmd_num == -1){
       goto error;
     }
+    update_user_liveness(user_inf);
     if(get_cmd_num == -2){
       continue;
     }
 
     user_cmd cmd_info = parse_cmd(cmd);   
     printf("cmd_info->cmd:%s\ncmd_info->args:%s\n", cmd_info.cmd, cmd_info.args);   
-    process_cmd(cmd_info, user_inf); 
+    if(process_cmd(cmd_info, user_inf) == -2){
+      goto quit;
+    }
    }
  error:
-  quit_server(user_inf);
+  quit_server(user_inf, "Client Quit");
+ quit:
   free(buf);
   free(cmd);
   free(msg);

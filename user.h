@@ -22,7 +22,7 @@ typedef struct user_info{
 }user_info;
 int nick_exist(char* user_nick, int* error_num);
 int nick_change(user_info* user_info, char* user_nick, int* error_num);
-int quit_server(user_info* user_info);
+int quit_server(user_info* user_info, char* reason);
 int join_user_to_global_list(user_info* user_info);
 int is_user_in_global_user_list(user_info* user_inf);
 int remove_user_from_global_list(user_info* user_inf);
