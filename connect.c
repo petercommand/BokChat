@@ -102,6 +102,7 @@ void client_connect_loop(int* sockfd_p){
     memset(user_inf, 0, sizeof(user_info));
     user_inf->socket = client_socket;
     user_inf->liveness = time(NULL);
+    user_inf->client_addr = client_addr;
     pthread_create(&(user_inf->user_thread), NULL, (void *(*)(void *))client_connect, (void *)user_inf);
   }
 }
