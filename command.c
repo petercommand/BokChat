@@ -78,7 +78,7 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
       pthread_mutex_unlock(&global_user_mutex);
       list_msg* nick_list_msg = (list_msg *)malloc(sizeof(list_msg));
       if(nick_list_msg == NULL){
-	return -1;
+	return error;
       }
       char msg[MAX_BUFFER] = {0};
       memset(nick_list_msg, 0, sizeof(list_msg));
