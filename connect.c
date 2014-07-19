@@ -13,8 +13,9 @@
 #ifndef LIST_H
 #include "list.h"
 #endif
+#include <errno.h>
 
-
+void client_connect(user_info* user_info);
 /*
 1. mutex init();
 2. channel list init();
@@ -24,11 +25,24 @@
 void server_mutex_init();
 void start_server(int sockfd){
   server_mutex_init();
-  
-  
-
-
-  
+  while(1){
+    if(1/* add select system call*/){
+      int client_socket = -1;
+      struct sockaddr client_addr;
+      memset(&client_addr, 0, sizeof(struct sockaddr));      
+      socklen_t client_len = sizeof(struct sockaddr);
+      client_socket = accept(sockfd, &client_addr, &client_len);
+      if(client_socket < 0){/* failed to accept socket*/
+	fprintf(stderr, "Error occurred while accepting client connection: %s", strerror(errno));
+	continue;
+      }
+      user_info* user_inf = (user_info *)malloc(sizeof(user_info));
+      memset(&user_inf, 0, sizeof(user_info));
+      user_inf->socket = client_socket;
+      user_inf->liveness = time(NULL);
+      pthread_create(&(user_inf->user_thread), NULL, (void *(*)(void *))client_connect, (void *)user_inf);
+    }
+  }
 
 }
 
@@ -58,4 +72,9 @@ int listen_bind_on_port(int port){
   }
   return sockfd;
   
+}
+void client_connect(user_info* user_info){
+  
+
+
 }
