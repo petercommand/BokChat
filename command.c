@@ -47,11 +47,6 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
   int error_num;
   irc_argument irc_args = parse_argument(args);
   int i;
-  /*
-  if((irc_args.param[0] == '\0') && (irc_args.trailing[0] == '\0')){
-    return -1;
-  }
-  */
   if(strcmp(cmd, "NICK") == 0){
     char old_nick[MAX_NICK_LENGTH+1];
     for(i=0;user_inf->user_nick[i] != '\0';i++){
