@@ -133,3 +133,7 @@ int is_user_in_global_user_list(user_info* user_inf){
   }
   return 0;
 }
+void update_user_liveness(user_info* user_inf){
+  user_inf->liveness = time(NULL);
+}
+  

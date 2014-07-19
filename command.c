@@ -366,7 +366,21 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     motd(user_inf);
     goto exit;
   }
+  else if(strcmp(cmd, "PING") == 0){
+    if(strcmp(irc_args.param, SERVER_NAME) == 0){/*client is pinging the server*/
+      char buf[MAX_BUFFER];
+      snprintf(buf, MAX_BUFFER, "PONG %s\r\n", SERVER_NAME);
+      pthread_mutex_lock(&user_inf->sock_mutex);
+      irc_send(user_inf->socket, buf, strlen(buf), MSG_DONTWAIT);
+      pthread_mutex_unlock(&user_inf->sock_mutex);
+    }
+    else{/*client is pinging another client*/
+      /*not supporting this at the moment */
 
+
+    }
+
+  }
 
   /*No command matches */
   send_message(421, user_inf, NULL, cmd, NULL);

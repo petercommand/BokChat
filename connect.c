@@ -157,7 +157,9 @@ void client_connect(user_info* user_inf){
     if(get_cmd_num == -1){
       goto error;
     }
+    pthread_mutex_lock(&global_user_mutex);
     update_user_liveness(user_inf);
+    pthread_mutex_unlock(&global_user_mutex);
     if(get_cmd_num == -2){
       continue;
     }
@@ -530,7 +532,6 @@ void send_message_to_user_in_list(list_msg* user_list_msg){/*remember to free in
 void send_message_by_type(user_info* user_inf, const char* msg_type, char* msg_body){
   int sockfd = user_inf->socket;
   char buf[MAX_BUFFER];
-  char buf2[MAX_BUFFER];
   pthread_mutex_lock(&user_inf->sock_mutex);
   if(strcmp(msg_type, "NOTICE") == 0){
     snprintf(buf, sizeof(buf), ":%s NOTICE * :*** %s", SERVER_NAME, msg_body);
@@ -540,10 +541,6 @@ void send_message_by_type(user_info* user_inf, const char* msg_type, char* msg_b
   if(strcmp(msg_type, "MOTD") == 0){
     snprintf(buf, sizeof(buf), ":%s 372 :- %s", SERVER_NAME, msg_body);
     irc_send(sockfd, buf, strlen(buf), 0);
-    goto exit;
-  }
-  else if(strcmp(msg_type, "PING") == 0){
-    
     goto exit;
   }
 

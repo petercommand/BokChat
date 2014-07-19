@@ -27,3 +27,5 @@ int join_user_to_global_list(user_info* user_info);
 int is_user_in_global_user_list(user_info* user_inf);
 int remove_user_from_global_list(user_info* user_inf);
 int is_node_in_user_list(user_list* user_lst, user_info* user_inf);
+void update_user_liveness(user_info* user_inf);
+
