@@ -24,10 +24,9 @@ int main(int argc, char *argv[]){
   }
   if(argc < 2){
     printf(
-	   "Usage: %s [-h host] -p port [-v] [-d]\n"
+	   "Usage: %s -p port [-v] [-d]\n"
 	   "-v     :  This option enables verbose mode [Default: false]\n"
 	   "-d     :  This option tells the server to daemonize [Default: %s]\n"
-	   "-h host:  Tells the server which host to listen\n"
 	   "-p port:  Specify the port for the server to listen\n"
 	   , argv[0], DAEMONIZE?"true":"false");
     exit(1);

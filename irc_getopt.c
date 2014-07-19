@@ -21,14 +21,11 @@ void get_server_opt(cmd_arg_opt* cmd_opt,int* argc, char** argv[]){
       case 'v': /*verbose*/
 	cmd_opt->verbose = true;
 	break;
-      case 'h': /*host*/
-	cmd_opt->host = optarg;
-	break;
       case 'p': /*port*/
 	cmd_opt->port = atoi(optarg);
 	break;
       case '?':
-	if ((optopt == 'h')||(optopt == 'p')){
+	if (optopt == 'p'){
 	  fprintf(stderr, "Option -%c requires an argument.\n", optopt);
 	}
 	else if(isprint (optopt)){
