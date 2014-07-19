@@ -81,12 +81,10 @@ int remove_node_from_channel_list(channel_list** channel_list_ptr, channel_info*
 	  channel_lst->priv->next = channel_lst->next;
 	  channel_lst->next->priv = channel_lst->priv;
 	  free(channel_lst);
-	  channel_lst = NULL;
 	}
 	else{
 	  channel_lst->priv->next = NULL;
 	  free(channel_lst);
-	  channel_lst = NULL;
 	}
       }
       break;
@@ -109,12 +107,10 @@ int remove_node_from_user_list(user_list** user_list_ptr, user_info* user_inf){
 	  user_lst->priv->next = user_lst->next;
 	  user_lst->next->priv = user_lst->priv;
 	  free(user_lst);
-	  user_lst = NULL;
 	}
 	else{
 	  user_lst->priv->next = NULL;
 	  free(user_lst);
-	  user_lst = NULL;
 	}
       }
       break;

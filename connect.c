@@ -62,8 +62,6 @@ void start_server(int sockfd){
   }
 
   free(sockfd_p);
-  sockfd_p = NULL;
-
 }
 
 /* mutex lock sequence: user then channel*/
@@ -387,13 +385,11 @@ int init_user(user_info* user_inf, char* buf){
   goto exit;
  exit:
   free(cmd);
-  cmd = NULL;
   pthread_join(user_dns, NULL);
   return 0;/* user and nick commands are both set to 1: ready to go*/
  error:
   free(cmd);
   pthread_join(user_dns, NULL);
-  cmd = NULL;
   return -1;
 }
 int line_terminated(char* input, int size){

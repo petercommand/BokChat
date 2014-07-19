@@ -177,9 +177,4 @@ void send_message_to_all_users_in_channel(irc_channel_msg* channel_msg){/*rememb
 
  exit:
   free(channel_msg);
-  channel_msg = NULL;
-
-
-
-
 }
