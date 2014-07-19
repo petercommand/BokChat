@@ -26,7 +26,8 @@ user_cmd parse_cmd(char* cmd);
 void server_mutex_init();
 ssize_t irc_recv(int sockfd, void* buf, size_t len, int flags);
 void trim_msg(char* buf, size_t len);
-int process_cmd(user_cmd cmd_info);
+int join_user_to_global_list(user_info* user_info);
+int process_cmd(user_cmd cmd_info, user_info* user_info);
 void start_server(int sockfd){
   server_mutex_init();
   pthread_t client_connect_thread;
@@ -159,7 +160,7 @@ int get_cmd(int socket, char* buf, char* cmd){
   }
   buf[term_buf] = '\0';
   strncpy(cmd, buf, MAX_BUFFER);
-  memmove(buf, &buf[term_buf + 2], MAX_BUFFER - term_buf -1);
+  memmove(buf, &buf[term_buf + 2], MAX_BUFFER - term_buf -2);
   return 0;
 }
     
@@ -196,7 +197,7 @@ int init_user(user_info* user_inf, char* buf){
   user_cmd cmd_info;
   memset(&cmd_info, 0, sizeof(cmd_info));
   if(cmd == NULL){
-    return -1;
+    goto error;
   }
   fd_set set;
   struct timeval wait_time;
@@ -209,11 +210,11 @@ int init_user(user_info* user_inf, char* buf){
     printf("select socket: %d\n", user_inf->socket);
     printf("select: %d\n", ready);
     if(ready < 0){
-      return -1;
+      goto error;
     }
     if(FD_ISSET(user_inf->socket, &set)){
       if(get_cmd(user_inf->socket, buf, cmd) == -1){
-	return -1;
+	goto error;
       }
       if(cmd != NULL){
 	cmd_info = parse_cmd(cmd);
@@ -221,7 +222,7 @@ int init_user(user_info* user_inf, char* buf){
 	/*put user into global user list after first nick command as we find user by nick */
 	if(strcmp(cmd_info.cmd, "NICK") == 0){
 	  pthread_mutex_lock(&global_user_mutex);
-	  if(process_cmd(cmd_info) == 0){
+	  if(process_cmd(cmd_info, user_inf) == 0){
 	    nick = 1;
 	    if(nick_already_set == 0){
 	      /*join user to global list*/
@@ -237,7 +238,7 @@ int init_user(user_info* user_inf, char* buf){
 	  pthread_mutex_unlock(&global_user_mutex);
 	}
 	else if(strcmp(cmd_info.cmd, "USER") == 0){
-	  if(process_cmd(cmd_info) == 0){
+	  if(process_cmd(cmd_info, user_inf) == 0){
 	    user = 1;
 	  }
 	}
@@ -246,10 +247,18 @@ int init_user(user_info* user_inf, char* buf){
     }
 
     if((time(NULL) - start_time) >= 60){/*timeout value*/
-      return -1;
+      goto error;
     }
   }
+  goto exit;
+ exit:
+  free(cmd);
+  cmd = NULL;
   return 0;/* user and nick commands are both set to 1: ready to go*/
+ error:
+  free(cmd);
+  cmd = NULL;
+  return -1;
   
 }  
 int line_terminated(char* input, int size){
@@ -278,7 +287,7 @@ int null_terminated(char* input, int size){
 }
 
 
-user_cmd parse_cmd(char* cmd){/* note that we don't need to process the string when no space is present as it is surely a invald command */
+user_cmd parse_cmd(char* cmd){
   int i,j,k;
   int space = 0;
   user_cmd cmd_info;
@@ -305,6 +314,7 @@ user_cmd parse_cmd(char* cmd){/* note that we don't need to process the string w
     for(i=0;cmd[i]!='\0';i++){
       cmd_info.cmd[i] = cmd[i];
     }
+    cmd_info.cmd[i] = '\0';
   }
   return cmd_info;
 }
