@@ -373,13 +373,9 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
       pthread_mutex_lock(&user_inf->sock_mutex);
       irc_send(user_inf->socket, buf, strlen(buf), MSG_DONTWAIT);
       pthread_mutex_unlock(&user_inf->sock_mutex);
+      goto exit;
     }
-    else{/*client is pinging another client*/
-      /*not supporting this at the moment */
-
-
-    }
-
+    goto error;
   }
 
   /*No command matches */

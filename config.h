@@ -16,4 +16,4 @@
 
 #define MAX_BUFFER 512
 
-#define SERVER_NAME "rlhsu.cukcake"
+#define SERVER_NAME "rlhsu.cupcake"
