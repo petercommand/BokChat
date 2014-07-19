@@ -141,9 +141,9 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
   }
   else if(strcmp(cmd, "USER") == 0){
     pthread_mutex_lock(&global_user_mutex);
-    if(user_already_exist_in_global_user_list(user_inf, &error_num)){
+    if(is_user_in_global_user_list(user_inf)){
+      /*might have some problem here, fix it */
       pthread_mutex_unlock(&global_user_mutex);
-      send_message(error_num, user_inf, cmd, &irc_args);
       goto error;
     }
     if((irc_args.param[0] == '\0') || (irc_args.trailing[0] == '\0')){
