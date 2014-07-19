@@ -239,10 +239,12 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     goto exit;
   }
   else if(strcmp(cmd, "NAMES") == 0){
-    
-
-
-
+    channel_info* channel_inf = channel_exist_by_name(irc_args.param);
+    if(channel_inf == NULL){
+      send_message(403, user_inf, NULL, cmd, &irc_args);
+      goto error;
+    }
+    names_command(user_inf, channel_inf, &irc_args);
     goto exit;
   }
   else if(strcmp(cmd, "PART") == 0){
