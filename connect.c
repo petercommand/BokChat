@@ -50,7 +50,9 @@ void start_server(int sockfd){
   pthread_create(&liveness_check_thread, NULL, (void *(*)(void *))liveness_check_loop, NULL);
 
 
-  while(1);
+  while(1){
+    pause();
+  }
 
   free(sockfd_p);
   sockfd_p = NULL;
@@ -135,7 +137,7 @@ void liveness_check_loop(){
   while(1){
     /* NOT finished*/
     
-    
+    pause();
     
   }
   
@@ -358,7 +360,35 @@ ssize_t irc_recv(int sockfd, void* buf, size_t len, int flags){
 ssize_t irc_send(int sockfd, const void *buf, size_t len, int flags){
   return send(sockfd, buf, len, flags);
 }
+void send_message_by_type(int sockfd, char* msg_type, char* msg_body){
+  char buf[MAX_BUFFER];
+  char buf2[MAX_BUFFER];
+  if(strcmp(msg_type, "NOTICE") == 0){
+    snprintf(buf, sizeof(buf), ":%s NOTICE * :*** %s", SERVER_NAME, msg_body);
+    irc_send(sockfd, buf, strlen(buf), 0);
+    return;
+  }
+  else if(strcmp(msg_type, "PING") == 0){
 
+
+    return;
+  }
+  else if(strcmp(msg_type, "PRIVMSG") == 0){
+
+
+    return;
+  }
+
+
+}
+void send_message_by_number(int num, int sockfd, char* msg_body){
+  char msg[MAX_BUFFER];
+  snprintf(msg, sizeof(msg), ":%s %d %s\r\n", SERVER_NAME, num, msg_body);
+  irc_send(sockfd, msg, strlen(msg), 0);
+
+
+
+}
 void send_message(int error_num, int sockfd, char* cmd, irc_argument* irc_args){
   char msg[MAX_BUFFER] = {0};
   char msg2[MAX_BUFFER] = {0};
