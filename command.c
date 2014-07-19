@@ -214,7 +214,7 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
       send_message(443, user_inf, NULL, cmd, &irc_args);
       goto error;
     }
-  join_send_msg:/*at this point, the channel creation process must be completed, both channel_inf == NULL and channel_inf != NULL conditions should met this reqirement*/
+  join_send_msg:/*at this point, the channel creation process must be completed, both originally channel_inf == NULL and channel_inf != NULL conditions should met this reqirement atm*/
     pthread_mutex_lock(&global_channel_mutex);
     if(join_user_to_channel(user_inf, channel_inf) != 0){      
       pthread_mutex_unlock(&global_channel_mutex);
