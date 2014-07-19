@@ -14,7 +14,11 @@
 #ifndef LIST_H
 #include "list.h"
 #endif
+#ifndef COMMAND_H
+#include "command.h"
+#endif
 #include <errno.h>
+#define SERVER_NAME "rlhsu.cukcake"
 int get_cmd(int socket, char* buf, char* cmd);
 void client_connect_loop(int* sockfd_p);
 void client_connect(user_info* user_inf);
@@ -29,7 +33,9 @@ ssize_t irc_send(int sockfd, const void *buf, size_t len, int flags);
 void trim_msg(char* buf, size_t len);
 int join_user_to_global_list(user_info* user_info);
 int process_cmd(user_cmd cmd_info, user_info* user_info);
-void send_message(int error_num, int sockfd);
+
+
+
 void start_server(int sockfd){
   server_mutex_init();
   pthread_t client_connect_thread;
@@ -141,7 +147,6 @@ int get_cmd(int socket, char* buf, char* cmd){
   int null_buf = -1;
   char recv_cmd[MAX_BUFFER+1] = {'\0'};
   recv_byte = irc_recv(socket, recv_cmd, MAX_BUFFER, MSG_DONTWAIT);/* already used the select call to block, thus recv should be set to nonblocking */
-  printf("recv_byte: %d\n", recv_byte);
   if(recv_byte <= 0){
     return -1;
   }
@@ -149,7 +154,6 @@ int get_cmd(int socket, char* buf, char* cmd){
   strncat(buf, recv_cmd, MAX_BUFFER-strlen(buf)-1);
   term_buf = line_terminated(buf, MAX_BUFFER);
   null_buf = null_terminated(buf, MAX_BUFFER);
-  printf("term_buf: %d\nnull_buf: %d\n", term_buf, null_buf);
   if((term_buf == -1) && (null_buf == (MAX_BUFFER-1))){
     /* truncate and clear buf here */
     strncpy(cmd, buf, MAX_BUFFER);
@@ -216,7 +220,6 @@ int init_user(user_info* user_inf, char* buf){
   int ready;
   int nick = 0;
   int user = 0;
-  int nick_already_set = 0;
   char* cmd = (char *)malloc(MAX_BUFFER);
   user_cmd cmd_info;
   memset(&cmd_info, 0, sizeof(cmd_info));
@@ -231,8 +234,6 @@ int init_user(user_info* user_inf, char* buf){
     wait_time.tv_sec = 15;/*wait for 15 secs. Remember to reset timer after every select call!*/
     wait_time.tv_usec = 0;
     ready = select(user_inf->socket+1,  &set, NULL, NULL, &wait_time);
-    printf("select socket: %d\n", user_inf->socket);
-    printf("select: %d\n", ready);
     if(ready < 0){
       goto error;
     }
@@ -242,18 +243,12 @@ int init_user(user_info* user_inf, char* buf){
       }
       if(cmd != NULL){
 	cmd_info = parse_cmd(cmd);
-	printf("cmd:%s\ncmd_info->cmd:%s\ncmd_info->args:%s\n",cmd, cmd_info.cmd, cmd_info.args);
+	printf("cmd_info->cmd:%s\ncmd_info->args:%s\n", cmd_info.cmd, cmd_info.args);
 	/*put user into global user list after first nick command as we find user by nick */
 	if(strcmp(cmd_info.cmd, "NICK") == 0){
 	  pthread_mutex_lock(&global_user_mutex);
 	  if(process_cmd(cmd_info, user_inf) == 0){
 	    nick = 1;
-	    if(nick_already_set == 0){
-	      /*join user to global list*/
-	      nick_already_set = 1;
-	      join_user_to_global_list(user_inf);
-	    }
-	    
 	  }
 	  pthread_mutex_unlock(&global_user_mutex);
 	}
@@ -265,7 +260,7 @@ int init_user(user_info* user_inf, char* buf){
 	  pthread_mutex_unlock(&global_user_mutex);
 	}
 	else{
-	  send_message(451, user_inf->socket);
+	  send_message(451, user_inf->socket, NULL, NULL);
 	}
 	  
       }
@@ -364,7 +359,9 @@ ssize_t irc_send(int sockfd, const void *buf, size_t len, int flags){
   return send(sockfd, buf, len, flags);
 }
 
-void send_message(int error_num, int sockfd){
+void send_message(int error_num, int sockfd, char* cmd, irc_argument* irc_args){
+  char msg[MAX_BUFFER] = {0};
+  char msg2[MAX_BUFFER] = {0};
   switch(error_num){
   case 401:
     break;
@@ -391,7 +388,9 @@ void send_message(int error_num, int sockfd){
   case 414:
     break;
   case 421:
-    irc_send(sockfd, "421 Unknown command\r\n", strlen("421 Unknown command\r\n"), 0);
+    snprintf(msg, sizeof(msg)-strlen(SERVER_NAME)-5, ":%s 421 %s :Unknown command", SERVER_NAME, cmd);
+    snprintf(msg2, sizeof(msg2), "%s\r\n", msg);
+    irc_send(sockfd, msg2, strlen(msg2), 0);
     break;
   case 422:
     break;
@@ -400,13 +399,19 @@ void send_message(int error_num, int sockfd){
   case 424:
     break;
   case 431:
-    irc_send(sockfd, "431 :No nickname given\r\n", strlen("432 :No nickname given\r\n"), 0);
+    snprintf(msg, sizeof(msg)-strlen(SERVER_NAME)-5, ":%s 431 :No nickname given", SERVER_NAME);
+    snprintf(msg2, sizeof(msg2), "%s\r\n", msg);
+    irc_send(sockfd, msg2, strlen(msg2), 0);
     break;
   case 432:
-    irc_send(sockfd, "432 :Erroneus nickname\r\n", strlen("432 :Erroneus nickname\r\n"), 0);
+    snprintf(msg, sizeof(msg)-strlen(SERVER_NAME)-5, ":%s 432 %s :Erroneus nickname", SERVER_NAME, irc_args->param);
+    snprintf(msg2, sizeof(msg2), "%s\r\n", msg);
+    irc_send(sockfd, msg2, strlen(msg2), 0);
     break;
   case 433:
-    irc_send(sockfd, "433 :Nickname is already in use\r\n", strlen("432 :Nicknae is already in use\r\n"), 0);
+    snprintf(msg, sizeof(msg)-strlen(SERVER_NAME)-5, ":%s 433 %s :Nickname is already in use", SERVER_NAME, irc_args->param);
+    snprintf(msg2, sizeof(msg2), "%s\r\n", msg);
+    irc_send(sockfd, msg2, strlen(msg2), 0);
     break;
   case 436:
     break;
@@ -423,7 +428,8 @@ void send_message(int error_num, int sockfd){
   case 446:
     break;
   case 451:
-    irc_send(sockfd, "451 :You have not registered\r\n", strlen("451 :You have not registered\r\n"), 0);
+    snprintf(msg, sizeof(msg), ":%s 451 :You have not registered\r\n", SERVER_NAME);
+    irc_send(sockfd, msg, strlen(msg), 0);
     break;
   case 461:
     break;

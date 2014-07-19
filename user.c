@@ -9,15 +9,6 @@
 extern user_list* global_user_list;
 extern channel_list* global_channel_list;
 extern pthread_mutex_t global_user_mutex;
-/* 
-features:
-
-change nickname
-
-
-user quit server
-
-*/
 
 int nick_exist(char* user_nick, int* error_num){
   user_list* head;
@@ -44,6 +35,7 @@ int nick_change(user_info* user_inf, char* user_nick, int* error_num){
     return -1;
   }
   if(nick_exist(user_nick, error_num)){
+    *error_num = 433;
     return -1;
   }
   user_inf->user_nick = user_nick;
@@ -87,3 +79,12 @@ int join_user_to_global_list(user_info* user_inf){
 }
 
 
+int user_already_exist_in_global_user_list(user_info* user_inf, int* error_num){
+  user_list* head = global_user_list;
+  while(head != NULL){
+    if(head->user_info == user_inf){
+      return 1;
+    }
+  }
+  return 0;
+}
