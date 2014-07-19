@@ -22,14 +22,12 @@
 #include <signal.h>
 #include <errno.h>
 #include <ctype.h>
-#define SERVER_NAME "rlhsu.cukcake"
 int get_cmd(int socket, char* buf, char* cmd, int* timeout);
 void client_connect_loop(int* sockfd_p);
 void client_connect(user_info* user_inf);
 void liveness_check_loop();
 int init_user(user_info* user_inf, char* buf);
 int line_terminated(char* input, int size);
-int null_terminated(char* input, int size);
 user_cmd parse_cmd(char* cmd);
 void server_mutex_init();
 ssize_t irc_recv(int sockfd, void* buf, size_t len, int flags);
@@ -790,15 +788,11 @@ void send_message(int error_num, user_info* user_inf, channel_info* channel_inf,
     pthread_mutex_unlock(&user_inf->sock_mutex);
     break;
   case 332:
-    /*
-
-
-    snprintf(msg, sizeof(msg)-strlen(SERVER_NAME)-5, ":%s 332 %s :%s", SERVER_NAME, );
+    snprintf(msg, sizeof(msg)-3, ":%s 332 %s %s :%s", SERVER_NAME, user_inf->user_nick, channel_inf->channel_name, channel_inf->topic);
     snprintf(msg2, sizeof(msg2), "%s\r\n", msg);
     pthread_mutex_lock(&user_inf->sock_mutex);
     irc_send(sockfd, msg2, strlen(msg2), 0);
     pthread_mutex_unlock(&user_inf->sock_mutex);
-    */
     break;
   case 341:
     break;

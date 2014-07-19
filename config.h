@@ -15,3 +15,5 @@
 #define MAX_CHANNEL_TOPIC_LENGTH 20
 
 #define MAX_BUFFER 512
+
+#define SERVER_NAME "rlhsu.cukcake"

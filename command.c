@@ -12,6 +12,9 @@
 #ifndef COMMAND_H
 #include "command.h"
 #endif
+#ifndef CONFIG_H
+#include "config.h"
+#endif
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -22,10 +25,8 @@ irc_argument parse_argument(char* args);
 ssize_t irc_recv(int sockfd, void* buf, size_t len, int flags);
 ssize_t irc_send(int sockfd, const void *buf, size_t len, int flags);
 void to_upper_case(char* input);
-
-
-
-
+int null_terminated(char* input, int size);
+void names_command(user_info* user_inf, channel_info* channel_inf, irc_argument* irc_args);
 
 
 
@@ -201,36 +202,46 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
       }
       pthread_mutex_lock(&global_channel_mutex);
       create_channel(channel_inf);
-      if(join_user_to_channel(user_inf, channel_inf) != 0){
-	pthread_mutex_unlock(&global_channel_mutex);
-	goto error;
-      }
       pthread_mutex_unlock(&global_channel_mutex);
-      channel_msg->channel_info = channel_inf;
-      pthread_attr_t msg_thread_attr;
-      pthread_attr_init(&msg_thread_attr);
-      pthread_attr_setdetachstate(&msg_thread_attr, PTHREAD_CREATE_DETACHED);
-      pthread_create(&msg_thread, &msg_thread_attr, (void *(*)(void *))send_message_to_all_users_in_channel, (void *)channel_msg);
-      goto exit;
+      goto join_send_msg;
     }
+    /*channel_inf != NULL */
     if(is_user_in_channel(user_inf, channel_inf) == 1){
       send_message(443, user_inf, NULL, cmd, &irc_args);
       goto error;
     }
+  join_send_msg:/*at this point, the channel creation process must be completed, both channel_inf == NULL and channel_inf != NULL conditions should met this reqirement*/
+    pthread_mutex_lock(&global_channel_mutex);
     if(join_user_to_channel(user_inf, channel_inf) != 0){      
+      pthread_mutex_unlock(&global_channel_mutex);
       goto error;
     }
-
-
+    pthread_mutex_unlock(&global_channel_mutex);
     channel_msg->channel_info = channel_inf;
-    pthread_attr_t msg_thread_attr;
-    pthread_attr_init(&msg_thread_attr);
-    pthread_attr_setdetachstate(&msg_thread_attr, PTHREAD_CREATE_DETACHED);
-    pthread_create(&msg_thread, &msg_thread_attr, (void *(*)(void *))send_message_to_all_users_in_channel, (void *)channel_msg);
+    pthread_create(&msg_thread, NULL, (void *(*)(void *))send_message_to_all_users_in_channel, (void *)channel_msg);
+    pthread_join(msg_thread, NULL);
+    /*show topic to user*/
+    pthread_mutex_lock(&global_channel_mutex);
+    char* topic = get_channel_topic(channel_inf);
+    if(topic[0] == '\0'){
+      send_message(331, user_inf, NULL, cmd, &irc_args);
+      pthread_mutex_unlock(&global_channel_mutex);
+      goto join_send_names;
+    }
+    send_message(332, user_inf, channel_inf, cmd, &irc_args);
+    pthread_mutex_unlock(&global_channel_mutex);
+
+  join_send_names:
+    names_command(user_inf, channel_inf, &irc_args);
+
+
+
+    
+    
     goto exit;
   }
   else if(strcmp(cmd, "NAMES") == 0){
-
+    
 
 
 
@@ -240,17 +251,43 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     
     goto exit;
   }
-  else if(strcmp(cmd, "TOPIC") == 0){
+  else if(strcmp(cmd, "TOPIC") == 0){/*TODO broadcast topic message to all user in channel */
+    channel_info* channel_inf;
     if(irc_args.trailing[0] == '\0'){/*get topic */
-
-
+      pthread_mutex_lock(&global_channel_mutex);
+      channel_inf = channel_exist_by_name(irc_args.param);
+      if(channel_inf == NULL){
+	send_message(403, user_inf, NULL, cmd, &irc_args);/*no such channel*/
+	pthread_mutex_unlock(&global_channel_mutex);
+	goto error;
+      }
+      else{
+	char* topic = get_channel_topic(channel_inf);
+	if(topic[0] == '\0'){
+	  send_message(331, user_inf, NULL, cmd, &irc_args);
+	  pthread_mutex_unlock(&global_channel_mutex);
+	  goto exit;
+	}
+	send_message(332, user_inf, channel_inf, cmd, &irc_args);
+	pthread_mutex_unlock(&global_channel_mutex);
+	goto exit;
+      }
 
     }
     else{/*change topic*/
-
-
+      pthread_mutex_lock(&global_channel_mutex);
+      channel_inf = channel_exist_by_name(irc_args.param);
+      if(channel_inf == NULL){
+	send_message(403, user_inf, NULL, cmd, &irc_args);/*no such channel*/
+	pthread_mutex_unlock(&global_channel_mutex);
+	goto error;
+      }
+      set_channel_topic(channel_inf, irc_args.trailing);
+      send_message(332, user_inf, channel_inf, cmd, &irc_args);
+      pthread_mutex_unlock(&global_channel_mutex);
+      goto exit;
     }
-
+      
     goto exit;
   }
   else if(strcmp(cmd, "KICK") == 0){
@@ -330,4 +367,52 @@ irc_argument parse_argument(char* args){
   return irc_args;
 }
 
+
+void names_command(user_info* user_inf, channel_info* channel_inf, irc_argument* irc_args){
+  char buf[MAX_BUFFER];
+  snprintf(buf, MAX_BUFFER, ":%s 353 %s = %s :", SERVER_NAME, user_inf->user_nick, channel_inf->channel_name);
+  char buf2[MAX_BUFFER];
+  char buf3[MAX_BUFFER];
+  char temp[MAX_BUFFER];
+  user_list* head = channel_inf->joined_users;
+
+  while(head != NULL){
+    snprintf(buf2, MAX_BUFFER, "%s", buf);
+    while(strlen(buf2) < 450){
+      if(head != NULL){
+	snprintf(temp, MAX_BUFFER, "%s ", head->user_info->user_nick);
+	strncat(buf2, temp, 20);
+	head = head->next;
+      }
+      else{
+	break;
+      }
+    }
+    snprintf(buf3, MAX_BUFFER, "%s\r\n", buf2);
+    pthread_mutex_lock(&user_inf->sock_mutex);
+    irc_send(user_inf->socket, buf3, strlen(buf3), MSG_DONTWAIT);
+    pthread_mutex_unlock(&user_inf->sock_mutex);
+  }
+  snprintf(buf, MAX_BUFFER -3, ":%s 366 %s %s :End of /NAMES list.", SERVER_NAME, user_inf->user_nick, channel_inf->channel_name);
+  snprintf(buf2, MAX_BUFFER, "%s\r\n", buf);
+  pthread_mutex_lock(&user_inf->sock_mutex);
+  irc_send(user_inf->socket, buf2, strlen(buf2), MSG_DONTWAIT);
+  pthread_mutex_unlock(&user_inf->sock_mutex);
+
+}
+
+
+
+
+int null_terminated(char* input, int size){
+  int i;
+  int result = -1;
+  for(i=0;i < size;i++){
+    if(input[i] == '\0'){
+      result = i;
+      break;
+    }
+  }
+  return result;
+}
 

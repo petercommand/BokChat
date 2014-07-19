@@ -20,3 +20,5 @@ int is_user_op_in_channel(user_info* user_info, channel_info* channel_info);
 channel_info* channel_exist_by_name(char* channel_name);
 int is_user_in_channel(user_info* user_info, channel_info* channel_info);
 void send_message_to_all_users_in_channel(irc_channel_msg* channel_msg);
+char* get_channel_topic(channel_info* channel_info);
+int set_channel_topic(channel_info* channel_info, char* topic);
