@@ -18,6 +18,7 @@
 #ifndef COMMAND_H
 #include "command.h"
 #endif
+#include <signal.h>
 #include <errno.h>
 #define SERVER_NAME "rlhsu.cukcake"
 int get_cmd(int socket, char* buf, char* cmd);
@@ -38,6 +39,7 @@ void reverse_dns(user_info* user_inf);
 void send_message_by_type(user_info* user_inf, const char* msg_type, char* msg_body);
 void send_message_by_number(int num, user_info* user_inf, char* msg_body);
 void send_message(int error_num, user_info* user_inf, char* cmd, irc_argument* irc_args);
+void print_hex(char *input);
 
 
 void start_server(int sockfd){
@@ -50,6 +52,10 @@ void start_server(int sockfd){
     exit(1);
   }
   *sockfd_p = sockfd;
+  struct sigaction sa;
+  memset(&sa, 0, sizeof(sa));
+  sa.sa_handler = SIG_IGN;
+  sigaction(SIGPIPE, &sa, 0);
   pthread_create(&client_connect_thread, NULL, (void *(*)(void *))client_connect_loop, (void *)sockfd_p);
   pthread_create(&liveness_check_thread, NULL, (void *(*)(void *))liveness_check_loop, NULL);
 
@@ -155,29 +161,59 @@ int get_cmd(int socket, char* buf, char* cmd){
   memset(cmd, 0, sizeof(&cmd));
   int recv_byte = -1;
   int term_buf = -1;
-  int null_buf = -1;
+  int term_buf2 = -1;
+  int ready;
   char recv_cmd[MAX_BUFFER+1] = {'\0'};
-  recv_byte = irc_recv(socket, recv_cmd, MAX_BUFFER, MSG_DONTWAIT);/* already used the select call to block, thus recv should be set to nonblocking */
-  if(recv_byte <= 0){
-    return -1;
+  term_buf = line_terminated(buf, MAX_BUFFER);
+  if(term_buf == -1){
+    fd_set set;
+    struct timeval wait_time;
+    FD_ZERO(&set);
+    FD_SET(socket, &set);
+    wait_time.tv_sec = 15;/*wait for 15 secs. Remember to reset timer after every select call!*/
+    wait_time.tv_usec = 0;
+    ready = select(socket+1,  &set, NULL, NULL, &wait_time);
+    if(ready < 0){
+      return -1;
+    }
+    if(FD_ISSET(socket, &set)){
+      recv_byte = irc_recv(socket, recv_cmd, MAX_BUFFER, MSG_DONTWAIT);/* already used the select call to block, thus recv should be set to nonblocking */
+      if(recv_byte <= 0){
+	return -1;
+      }
+    }
+    else{
+      return -2;
+    }
+  }
+  else if(term_buf == 0){
+    memmove(buf, &buf[1], MAX_BUFFER -1);
+    return -2;
+  }
+  else{
+    goto cont;/* already has a command in buffer, no need to receive from socket */
   }
   trim_msg(recv_cmd, recv_byte);
   strncat(buf, recv_cmd, MAX_BUFFER-strlen(buf)-1);
-  term_buf = line_terminated(buf, MAX_BUFFER);
-  null_buf = null_terminated(buf, MAX_BUFFER);
-  if((term_buf == -1) && (null_buf == (MAX_BUFFER-1))){
+ cont:
+  term_buf2 = line_terminated(buf, MAX_BUFFER);
+  printf("buf: %s\n", buf);
+  printf("term_buf: %d\n", term_buf2);
+  if(term_buf2 == -1){
     /* truncate and clear buf here */
+    buf[term_buf2] = '\0';
     strncpy(cmd, buf, MAX_BUFFER);
     memset(buf, 0, sizeof(&buf));
     return 0;
   }
-  if((term_buf == -1) && (term_buf < (MAX_BUFFER-1))){
-    /* no command received */
-    return 0;
-  }
-  buf[term_buf] = '\0';
+  buf[term_buf2] = '\0';
   strncpy(cmd, buf, MAX_BUFFER);
-  memmove(buf, &buf[term_buf + 2], MAX_BUFFER - term_buf -2);
+  if(buf[term_buf2+1] != '\0'){
+    memmove(buf, &buf[term_buf2 + 1], MAX_BUFFER - term_buf2 - 1);
+  }
+  else{
+    memmove(buf, &buf[term_buf2 + 2], MAX_BUFFER - term_buf2 - 2);
+  }
   return 0;
 }
     
@@ -226,9 +262,16 @@ int valid_nick(char* input){
   return 1;
 }
 
+void print_hex(char *input){
+  while(*input){
+    printf("hex: %02x char: %c\n", (unsigned int)*input, (unsigned char)*input);
+    input++;
+  }
+}
+
 int init_user(user_info* user_inf, char* buf){
   time_t start_time = time(NULL);
-  int ready;
+  int get_cmd_num;
   int nick = 0;
   int user = 0;
   char* cmd = (char *)malloc(MAX_BUFFER);
@@ -237,48 +280,41 @@ int init_user(user_info* user_inf, char* buf){
   if(cmd == NULL){
     goto error;
   }
-  fd_set set;
-  struct timeval wait_time;
   pthread_t user_dns;
   pthread_create(&user_dns, NULL, (void *(*)(void *))reverse_dns, (void *)user_inf);
   while((nick == 0) || (user == 0)){
-    FD_ZERO(&set);
-    FD_SET(user_inf->socket, &set);
-    wait_time.tv_sec = 15;/*wait for 15 secs. Remember to reset timer after every select call!*/
-    wait_time.tv_usec = 0;
-    ready = select(user_inf->socket+1,  &set, NULL, NULL, &wait_time);
-    if(ready < 0){
+    get_cmd_num = get_cmd(user_inf->socket, buf, cmd);
+    if(get_cmd_num == -1){
       goto error;
     }
-    if(FD_ISSET(user_inf->socket, &set)){
-      if(get_cmd(user_inf->socket, buf, cmd) == -1){
-	goto error;
-      }
-      if(cmd != NULL){
-	cmd_info = parse_cmd(cmd);
-	printf("cmd_info->cmd:%s\ncmd_info->args:%s\n", cmd_info.cmd, cmd_info.args);
-	/*put user into global user list after first nick command as we find user by nick */
-	if(strcmp(cmd_info.cmd, "NICK") == 0){
-	  pthread_mutex_lock(&global_user_mutex);
-	  if(process_cmd(cmd_info, user_inf) == 0){
-	    nick = 1;
-	  }
-	  pthread_mutex_unlock(&global_user_mutex);
-	}
-	else if(strcmp(cmd_info.cmd, "USER") == 0){
-	  pthread_mutex_lock(&global_user_mutex);
-	  if(process_cmd(cmd_info, user_inf) == 0){
-	    user = 1;
-	  }
-	  pthread_mutex_unlock(&global_user_mutex);
-	}
-	else{
-	  send_message(451, user_inf, NULL, NULL);
-	}
-	  
-      }
+    if(get_cmd_num == -2){
+      continue;
     }
-
+    if((cmd != NULL) && (cmd[0] != '\0')){
+      cmd_info = parse_cmd(cmd);
+      printf("cmd_info->cmd:%s\ncmd_info->args:%s\n", cmd_info.cmd, cmd_info.args);
+      /*put user into global user list after first nick command as we find user by nick */
+      if(strcmp(cmd_info.cmd, "NICK") == 0){
+	pthread_mutex_lock(&global_user_mutex);
+	if(process_cmd(cmd_info, user_inf) == 0){
+	  nick = 1;
+	}
+	pthread_mutex_unlock(&global_user_mutex);
+      }
+      else if(strcmp(cmd_info.cmd, "USER") == 0){
+	pthread_mutex_lock(&global_user_mutex);
+	if(process_cmd(cmd_info, user_inf) == 0){
+	  user = 1;
+	}
+	pthread_mutex_unlock(&global_user_mutex);
+      }
+      else{
+	send_message(451, user_inf, NULL, NULL);
+      }
+      
+    }
+  
+  
     if((time(NULL) - start_time) >= 60){/*timeout value*/
       goto error;
     }
@@ -287,17 +323,18 @@ int init_user(user_info* user_inf, char* buf){
  exit:
   free(cmd);
   cmd = NULL;
+  pthread_join(user_dns, NULL);
   return 0;/* user and nick commands are both set to 1: ready to go*/
  error:
   free(cmd);
+  pthread_join(user_dns, NULL);
   cmd = NULL;
   return -1;
-  
-}  
+}
 int line_terminated(char* input, int size){
   int i;
   int result = -1;
-  for(i=0;i<size;i++){
+  for(i=0;(input[i] != '\0') && (i < size);i++){
     if(input[i] == '\n'){
       result = i;
       break;
@@ -307,17 +344,6 @@ int line_terminated(char* input, int size){
 }
 
 
-int null_terminated(char* input, int size){
-  int i;
-  int result = -1;
-  for(i=0;i<size;i++){
-    if(input[i] == '\0'){
-      result = i;
-      break;
-    }
-  }
-  return result;
-}
 
 void reverse_dns(user_info* user_inf){/*this function do reverse and forward dns to check client's hostname */
   struct sockaddr client_addr = user_inf->client_addr;
@@ -394,12 +420,10 @@ user_cmd parse_cmd(char* cmd){
 void trim_msg(char* buf, size_t len){
   /* This function trims character '\r' out the input buf */
   int i = 0;
-  int j = 0;
-  for(i=0, j=0;(i<len) && (j<len);i++,j++){
-    if(buf[i] == '\r'){
-      j = j + 1;
+  for(i=0;i<len;i++){
+    if((unsigned int)buf[i] == 13){
+      buf[i] = '\n';
     }
-    buf[i] = buf[j];
   }
 }
 

@@ -45,6 +45,7 @@ int main(int argc, char *argv[]){
     fprintf(stderr, "Either binding or listening has failed\n%s\nQuitting...\n", strerror(errno));
     exit(1);
   }
+
   printf("Starting server...\n");
   start_server(sockfd);
   return 0;
