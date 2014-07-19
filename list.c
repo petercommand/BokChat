@@ -91,8 +91,10 @@ int remove_node_from_channel_list(channel_list** channel_lst, channel_info* chan
       else{
 	if((*channel_lst)->next != NULL){
 	  (*channel_lst)->next->priv = NULL;
-	  free(*channel_lst);
-	  (*channel_lst) = NULL;
+	  channel_list* temp = (*channel_lst);
+	  (*channel_lst) = (*channel_lst)->next;
+	  free(temp);
+	  temp = NULL;
 	}
 	else{
 	  free(*channel_lst);
@@ -127,8 +129,10 @@ int remove_node_from_user_list(user_list** user_lst, user_info* user_inf){
       else{
 	if((*user_lst)->next != NULL){
 	  (*user_lst)->next->priv = NULL;
-	  free(*user_lst);
-	  *user_lst = NULL;
+	  user_list* temp = (*user_lst);
+	  (*user_lst) = (*user_lst)->next;
+	  free(temp);
+	  temp = NULL;
 	}
 	else{
 	  free(*user_lst);

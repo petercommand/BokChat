@@ -153,9 +153,18 @@ void send_message_to_all_users_in_channel(irc_channel_msg* channel_msg){/*rememb
     
   }
 
+  else if(strcmp(message_type, "TOPIC") == 0){
+    user_list* head;
+    pthread_mutex_lock(&global_channel_mutex);
+    for(head = channel_msg->channel_info->joined_users;head != NULL;head = head->next){
+      snprintf(buf, MAX_BUFFER-3, ":%s 332 %s %s :%s", SERVER_NAME, head->user_info->user_nick, channel_msg->channel_info->channel_name, channel_msg->channel_info->topic);
+      snprintf(buf2, MAX_BUFFER, "%s\r\n", buf);
+      send_message_to_user(head->user_info, buf2);
+    }
+    pthread_mutex_unlock(&global_channel_mutex);
 
-
-
+    goto exit;
+  }
 
 
 

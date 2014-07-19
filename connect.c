@@ -503,7 +503,6 @@ void send_message_to_user_in_list(list_msg* user_list_msg){/*remember to free in
   while(user_lst != NULL){
     pthread_mutex_lock(&user_lst->user_info->sock_mutex);
     i = irc_send(user_lst->user_info->socket, buf, strlen(buf), MSG_DONTWAIT);
-    printf("%d\n", i);
     pthread_mutex_unlock(&user_lst->user_info->sock_mutex);
     if(user_lst->next != NULL){
       user_lst = user_lst->next;
@@ -553,7 +552,7 @@ void send_message_by_type(user_info* user_inf, const char* msg_type, char* msg_b
 void send_message_by_number(int num, user_info* user_inf, char* msg_body){
   int sockfd = user_inf->socket;
   char msg[MAX_BUFFER];
-  snprintf(msg, sizeof(msg), ":%s %d %s %s", SERVER_NAME, num, user_inf->user_nick, msg_body);
+  snprintf(msg, sizeof(msg), ":%s %03d %s %s", SERVER_NAME, num, user_inf->user_nick, msg_body);
   pthread_mutex_lock(&user_inf->sock_mutex);
   irc_send(sockfd, msg, strlen(msg), 0);
   pthread_mutex_unlock(&user_inf->sock_mutex);

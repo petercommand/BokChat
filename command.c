@@ -166,7 +166,6 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     goto exit;
   }
   else if(strcmp(cmd, "JOIN") == 0){
-    pthread_t msg_thread;
     irc_channel_msg* channel_msg = (irc_channel_msg *)malloc(sizeof(irc_channel_msg));
     if(channel_msg == NULL){
       goto error;
@@ -218,8 +217,7 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     }
     pthread_mutex_unlock(&global_channel_mutex);
     channel_msg->channel_info = channel_inf;
-    pthread_create(&msg_thread, NULL, (void *(*)(void *))send_message_to_all_users_in_channel, (void *)channel_msg);
-    pthread_join(msg_thread, NULL);
+    send_message_to_all_users_in_channel(channel_msg);
     /*show topic to user*/
     pthread_mutex_lock(&global_channel_mutex);
     char* topic = get_channel_topic(channel_inf);
@@ -251,7 +249,7 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     
     goto exit;
   }
-  else if(strcmp(cmd, "TOPIC") == 0){/*TODO broadcast topic message to all user in channel */
+  else if(strcmp(cmd, "TOPIC") == 0){
     channel_info* channel_inf;
     if(irc_args.trailing[0] == '\0'){/*get topic */
       pthread_mutex_lock(&global_channel_mutex);
@@ -277,13 +275,25 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     else{/*change topic*/
       pthread_mutex_lock(&global_channel_mutex);
       channel_inf = channel_exist_by_name(irc_args.param);
+      pthread_mutex_unlock(&global_channel_mutex);
       if(channel_inf == NULL){
 	send_message(403, user_inf, NULL, cmd, &irc_args);/*no such channel*/
-	pthread_mutex_unlock(&global_channel_mutex);
 	goto error;
       }
       set_channel_topic(channel_inf, irc_args.trailing);
-      send_message(332, user_inf, channel_inf, cmd, &irc_args);
+      irc_channel_msg* channel_msg = (irc_channel_msg *)malloc(sizeof(irc_channel_msg));
+      if(channel_msg == NULL){
+	goto error;
+      }
+      memset(channel_msg, 0, sizeof(*channel_msg));
+      char* message_type = "TOPIC";
+      for(i=0;message_type[i] != '\0';i++){
+	channel_msg->message_type[i] = message_type[i];
+      }
+      channel_msg->message_type[i] = '\0';
+      channel_msg->user_inf = user_inf;
+      channel_msg->channel_info = channel_inf;
+      send_message_to_all_users_in_channel(channel_msg);
       pthread_mutex_unlock(&global_channel_mutex);
       goto exit;
     }

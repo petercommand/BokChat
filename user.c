@@ -49,15 +49,27 @@ int nick_change(user_info* user_inf, char* user_nick, int* error_num){
 
 int quit_server(user_info* user_inf){
   channel_list* joined_channels;
-  for(joined_channels = user_inf->joined_channels;joined_channels != NULL;joined_channels = joined_channels->next){
+  pthread_mutex_lock(&global_user_mutex);
+  pthread_mutex_lock(&global_channel_mutex);
+  channel_list* temp;
+  for(joined_channels = user_inf->joined_channels;joined_channels != NULL;joined_channels = temp){
+    if(joined_channels->next != NULL){
+      temp = joined_channels->next;
+    }
+    else{
+      temp = NULL;
+    }
     quit_user_from_channel(user_inf, joined_channels->channel_info);
   }
+
   remove_user_from_global_list(user_inf);
   pthread_mutex_lock(&user_inf->sock_mutex);
   close(user_inf->socket);
   pthread_mutex_unlock(&user_inf->sock_mutex);
   free(user_inf);
   user_inf = NULL;
+  pthread_mutex_unlock(&global_channel_mutex);
+  pthread_mutex_unlock(&global_user_mutex);
   return 0;
 }
 
