@@ -23,7 +23,6 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
   char* cmd = cmd_info.cmd;
   char* args = cmd_info.args;
   int error_num;
-  int sock_fd = user_inf->socket;
   irc_argument irc_args = parse_argument(args);
 /*  if((irc_args.param[0] == '\0') && (irc_args.trailing[0] == '\0')){
     return -1;
@@ -32,7 +31,7 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     if(nick_change(user_inf, irc_args.param, &error_num) == 0){      
       goto exit;
     }
-    send_message(error_num, sock_fd, cmd, &irc_args);
+    send_message(error_num, user_inf, cmd, &irc_args);
     goto error;
   }
   else if(strcmp(cmd, "PRIVMSG") == 0){
@@ -41,14 +40,14 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
   }
   else if(strcmp(cmd, "USER") == 0){
     if(user_already_exist_in_global_user_list(user_inf, &error_num)){
-      send_message(error_num, sock_fd, cmd, &irc_args);
+      send_message(error_num, user_inf, cmd, &irc_args);
       goto error;
     }
-    if((irc_args.param[0] == '\0') && (irc_args.trailing[0] == '\0')){
-      send_message(461, sock_fd, cmd, &irc_args);
-      return -1;
+    if((irc_args.param[0] == '\0') || (irc_args.trailing[0] == '\0')){
+      send_message(461, user_inf, cmd, &irc_args);
+      goto error;
     }
-        
+    /*goto exit;*/
 
   }
   else if(strcmp(cmd, "JOIN") == 0){
@@ -70,7 +69,7 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
 
 
   /*No command matches */
-  send_message(421, sock_fd, cmd, NULL);
+  send_message(421, user_inf, cmd, NULL);
   goto error;
 
 

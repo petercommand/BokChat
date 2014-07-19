@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netdb.h>
 #include <unistd.h>
 #ifndef CONNECT_H
 #include "connect.h"
@@ -33,7 +34,10 @@ ssize_t irc_send(int sockfd, const void *buf, size_t len, int flags);
 void trim_msg(char* buf, size_t len);
 int join_user_to_global_list(user_info* user_info);
 int process_cmd(user_cmd cmd_info, user_info* user_info);
-
+void reverse_dns(user_info* user_inf);
+void send_message_by_type(user_info* user_inf, const char* msg_type, char* msg_body);
+void send_message_by_number(int num, user_info* user_inf, char* msg_body);
+void send_message(int error_num, user_info* user_inf, char* cmd, irc_argument* irc_args);
 
 
 void start_server(int sockfd){
@@ -103,6 +107,7 @@ void client_connect_loop(int* sockfd_p){
     user_inf->socket = client_socket;
     user_inf->liveness = time(NULL);
     user_inf->client_addr = client_addr;
+    pthread_mutex_init(&user_inf->sock_mutex, NULL);
     pthread_create(&(user_inf->user_thread), NULL, (void *(*)(void *))client_connect, (void *)user_inf);
   }
 }
@@ -117,7 +122,10 @@ void client_connect(user_info* user_inf){
   if(init_user(user_inf, buf) != 0){
 /* user have to send in NICK and USER command to the server to init_user function, this function shall initialize everything in the user_info struct for the user. If init_user return non-zero value, disconnect the user immediately */
     /* free everything*/
+    pthread_mutex_lock(&user_inf->sock_mutex);
     close(user_inf->socket);
+    pthread_mutex_unlock(&user_inf->sock_mutex);
+    pthread_mutex_destroy(&user_inf->sock_mutex);
     free(buf);
     free(user_inf);
     pthread_exit(NULL);
@@ -231,6 +239,8 @@ int init_user(user_info* user_inf, char* buf){
   }
   fd_set set;
   struct timeval wait_time;
+  pthread_t user_dns;
+  pthread_create(&user_dns, NULL, (void *(*)(void *))reverse_dns, (void *)user_inf);
   while((nick == 0) || (user == 0)){
     FD_ZERO(&set);
     FD_SET(user_inf->socket, &set);
@@ -263,7 +273,7 @@ int init_user(user_info* user_inf, char* buf){
 	  pthread_mutex_unlock(&global_user_mutex);
 	}
 	else{
-	  send_message(451, user_inf->socket, NULL, NULL);
+	  send_message(451, user_inf, NULL, NULL);
 	}
 	  
       }
@@ -307,6 +317,44 @@ int null_terminated(char* input, int size){
     }
   }
   return result;
+}
+
+void reverse_dns(user_info* user_inf){/*this function do reverse and forward dns to check client's hostname */
+  struct sockaddr client_addr = user_inf->client_addr;
+  /*reverse dns*/
+  struct addrinfo hints;
+  struct addrinfo *result, *rp;
+  memset(&hints, 0, sizeof(struct addrinfo));
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_protocol = IPPROTO_TCP;
+  char hostname[NI_MAXHOST];
+  int i;
+  send_message_by_type(user_inf, "NOTICE", "Looking up your hostname...\r\n");
+  int res = getnameinfo(&client_addr, sizeof(client_addr), hostname, sizeof(hostname), NULL, 0, NI_NAMEREQD);
+  if(res != 0){
+    send_message_by_type(user_inf, "NOTICE", "No hostname found\r\n");
+    return;
+  }
+  /*forward dns*/
+  res = getaddrinfo(hostname, NULL, &hints, &result);
+  if(res != 0){
+     send_message_by_type(user_inf, "NOTICE", "No hostname found\r\n");
+    return;
+  }
+  for(rp = result; rp != NULL; rp = rp->ai_next){
+    if(strcmp(rp->ai_addr->sa_data, client_addr.sa_data)){
+      for(i=0; hostname[i] != '\0'; i++){
+	user_inf->hostname[i] = hostname[i];
+      }
+      send_message_by_type(user_inf, "NOTICE", "Found your hostname\r\n");
+      printf("hostname: %s\n", hostname);
+      return;
+    }
+  }
+  return;
+
+
 }
 
 
@@ -361,38 +409,44 @@ ssize_t irc_recv(int sockfd, void* buf, size_t len, int flags){
 ssize_t irc_send(int sockfd, const void *buf, size_t len, int flags){
   return send(sockfd, buf, len, flags);
 }
-void send_message_by_type(int sockfd, char* msg_type, char* msg_body){
+void send_message_by_type(user_info* user_inf, const char* msg_type, char* msg_body){
+  int sockfd = user_inf->socket;
   char buf[MAX_BUFFER];
   char buf2[MAX_BUFFER];
   if(strcmp(msg_type, "NOTICE") == 0){
     snprintf(buf, sizeof(buf), ":%s NOTICE * :*** %s", SERVER_NAME, msg_body);
+    pthread_mutex_lock(&user_inf->sock_mutex);
     irc_send(sockfd, buf, strlen(buf), 0);
-    return;
+    goto exit;
   }
   else if(strcmp(msg_type, "PING") == 0){
+    pthread_mutex_lock(&user_inf->sock_mutex);
 
-
-    return;
+    goto exit;
   }
   else if(strcmp(msg_type, "PRIVMSG") == 0){
-
-
-    return;
+    pthread_mutex_lock(&user_inf->sock_mutex);
+    goto exit;
   }
-
+ exit:
+  pthread_mutex_unlock(&user_inf->sock_mutex);
+  return;
 
 }
-void send_message_by_number(int num, int sockfd, char* msg_body){
+void send_message_by_number(int num, user_info* user_inf, char* msg_body){
+  int sockfd = user_inf->socket;
   char msg[MAX_BUFFER];
   snprintf(msg, sizeof(msg), ":%s %d %s\r\n", SERVER_NAME, num, msg_body);
+  pthread_mutex_lock(&user_inf->sock_mutex);
   irc_send(sockfd, msg, strlen(msg), 0);
-
+  pthread_mutex_unlock(&user_inf->sock_mutex);
 
 
 }
-void send_message(int error_num, int sockfd, char* cmd, irc_argument* irc_args){
+void send_message(int error_num, user_info* user_inf, char* cmd, irc_argument* irc_args){
   char msg[MAX_BUFFER] = {0};
   char msg2[MAX_BUFFER] = {0};
+  int sockfd = user_inf->socket;
   switch(error_num){
   case 401:
     break;
@@ -421,7 +475,9 @@ void send_message(int error_num, int sockfd, char* cmd, irc_argument* irc_args){
   case 421:
     snprintf(msg, sizeof(msg)-strlen(SERVER_NAME)-5, ":%s 421 %s :Unknown command", SERVER_NAME, cmd);
     snprintf(msg2, sizeof(msg2), "%s\r\n", msg);
+    pthread_mutex_lock(&user_inf->sock_mutex);
     irc_send(sockfd, msg2, strlen(msg2), 0);
+    pthread_mutex_unlock(&user_inf->sock_mutex);
     break;
   case 422:
     break;
@@ -432,17 +488,23 @@ void send_message(int error_num, int sockfd, char* cmd, irc_argument* irc_args){
   case 431:
     snprintf(msg, sizeof(msg)-strlen(SERVER_NAME)-5, ":%s 431 :No nickname given", SERVER_NAME);
     snprintf(msg2, sizeof(msg2), "%s\r\n", msg);
+    pthread_mutex_lock(&user_inf->sock_mutex);
     irc_send(sockfd, msg2, strlen(msg2), 0);
+    pthread_mutex_unlock(&user_inf->sock_mutex);
     break;
   case 432:
     snprintf(msg, sizeof(msg)-strlen(SERVER_NAME)-5, ":%s 432 %s :Erroneus nickname", SERVER_NAME, irc_args->param);
     snprintf(msg2, sizeof(msg2), "%s\r\n", msg);
+    pthread_mutex_lock(&user_inf->sock_mutex);
     irc_send(sockfd, msg2, strlen(msg2), 0);
+    pthread_mutex_unlock(&user_inf->sock_mutex);
     break;
   case 433:
     snprintf(msg, sizeof(msg)-strlen(SERVER_NAME)-5, ":%s 433 %s :Nickname is already in use", SERVER_NAME, irc_args->param);
     snprintf(msg2, sizeof(msg2), "%s\r\n", msg);
+    pthread_mutex_lock(&user_inf->sock_mutex);
     irc_send(sockfd, msg2, strlen(msg2), 0);
+    pthread_mutex_unlock(&user_inf->sock_mutex);
     break;
   case 436:
     break;
@@ -460,9 +522,16 @@ void send_message(int error_num, int sockfd, char* cmd, irc_argument* irc_args){
     break;
   case 451:
     snprintf(msg, sizeof(msg), ":%s 451 :You have not registered\r\n", SERVER_NAME);
+    pthread_mutex_lock(&user_inf->sock_mutex);
     irc_send(sockfd, msg, strlen(msg), 0);
+    pthread_mutex_unlock(&user_inf->sock_mutex);
     break;
   case 461:
+    snprintf(msg, sizeof(msg)-strlen(SERVER_NAME)-5, ":%s 461 %s :Not enough parameters", SERVER_NAME, cmd);
+    snprintf(msg2, sizeof(msg2), "%s\r\n", msg);
+    pthread_mutex_lock(&user_inf->sock_mutex);
+    irc_send(sockfd, msg2, strlen(msg2), 0);
+    pthread_mutex_unlock(&user_inf->sock_mutex);
     break;
   case 462:
     break;

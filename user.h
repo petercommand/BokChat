@@ -3,7 +3,10 @@
 #include <netinet/in.h>
 #define USER_H
 #include <pthread.h>
-
+#ifndef CONFIG_H
+#include "config.h"
+#endif
+#include <netdb.h>
 typedef struct channel_list channel_list;
 typedef struct user_info{
   pthread_t user_thread;
@@ -12,6 +15,7 @@ typedef struct user_info{
   channel_list* joined_channels;
   pthread_mutex_t sock_mutex;
   struct sockaddr client_addr;
+  char hostname[NI_MAXHOST];
   int priv;
   time_t liveness;
 }user_info;
