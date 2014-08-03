@@ -102,8 +102,8 @@ int remove_node_from_user_list(user_list** user_list_ptr, user_info* user_inf){
   while(user_lst != NULL){
     if(user_lst->user_info == user_inf){
       if(user_lst == *user_list_ptr){
+	*user_list_ptr = user_lst->next;
 	free(user_lst);
-	*user_list_ptr = NULL;
       }
       else{
 	if(user_lst->next != NULL){
