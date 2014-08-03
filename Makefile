@@ -11,7 +11,7 @@ BIN = bokchat
 all: $(BIN)
 
 
-rlhsu_server: $(OBJS)
+bokchat: $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
 
 clean:
