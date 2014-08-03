@@ -66,6 +66,7 @@ int quit_server(user_info* user_inf, char* reason){
   
   list_msg* quit_list_msg = (list_msg *)malloc(sizeof(list_msg));
   if(quit_list_msg == NULL){
+    pthread_mutex_unlock(&global_channel_mutex);
     return -1;
   }
   char msg[MAX_BUFFER] = {0};
