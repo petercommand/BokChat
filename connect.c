@@ -548,7 +548,6 @@ void send_message_by_type(user_info* user_inf, const char* msg_type, char* msg_b
     irc_send(sockfd, buf, strlen(buf), 0);
     goto exit;
   }
-
  exit:
   pthread_mutex_unlock(&user_inf->sock_mutex);
   return;

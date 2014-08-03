@@ -128,7 +128,16 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
       goto exit;
     }
     else{/*person*/
-      
+      user_info* target_user = user_exist_by_name(irc_args.param);
+      if(target_user == NULL){
+	send_message(401, user_inf, NULL, cmd, &irc_args);
+	goto error;
+      }
+      char privmsg_buf[MAX_BUFFER];
+      char privmsg_buf2[MAX_BUFFER];
+      snprintf(privmsg_buf, MAX_BUFFER, ":%s!%s@%s PRIVMSG %s :%s", user_inf->user_nick, user_inf->user_nick, user_inf->hostname, target_user->user_nick, irc_args.trailing);
+      snprintf(privmsg_buf2, MAX_BUFFER, "%s\r\n", privmsg_buf);
+      send_message_to_user(target_user, privmsg_buf2);
 
       goto exit;
     }
