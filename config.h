@@ -16,6 +16,6 @@
 
 #define MAX_BUFFER 512
 
-#define SERVER_NAME "bochat.cupcake"
+#define SERVER_NAME "bokchat.cupcake"
 
 #endif

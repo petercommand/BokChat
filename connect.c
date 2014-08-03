@@ -130,10 +130,10 @@ void client_connect(user_info* user_inf){
 /* user have to send in NICK and USER command to the server to init_user function, this function shall initialize everything in the user_info struct for the user. If init_user return non-zero value, disconnect the user immediately */
     goto error;
   }
-  snprintf(msg, MAX_BUFFER -3, ":Welcome to the bochat Internet Relay Chat Network %s", user_inf->user_nick);
+  snprintf(msg, MAX_BUFFER -3, ":Welcome to the bokchat Internet Relay Chat Network %s", user_inf->user_nick);
   snprintf(msg2, MAX_BUFFER, "%s\r\n", msg);
   send_message_by_number(001, user_inf, msg2);
-  snprintf(msg, MAX_BUFFER, ":Your host is %s, running version bochat-1.0.0\r\n", SERVER_NAME);
+  snprintf(msg, MAX_BUFFER, ":Your host is %s, running version bokchat-1.0.0\r\n", SERVER_NAME);
   send_message_by_number(002, user_inf, msg);
   motd(user_inf);
 
