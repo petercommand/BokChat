@@ -8,8 +8,11 @@ pthread_mutex_t global_user_mutex;
 
 
 void server_mutex_init(){
-  pthread_mutex_init(&global_channel_mutex, NULL);
-  pthread_mutex_init(&global_user_mutex, NULL);
+  pthread_mutexattr_t attr;
+  pthread_mutexattr_init(&attr);
+  pthread_muutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+  pthread_mutex_init(&global_channel_mutex, &attr);
+  pthread_mutex_init(&global_user_mutex, &attr);
 }
 
 int add_node_to_user_list(user_list** user_list_ptr, user_info* user_inf){
