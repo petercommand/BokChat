@@ -299,14 +299,15 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     else{/*change topic*/
       pthread_mutex_lock(&global_channel_mutex);
       channel_inf = channel_exist_by_name(irc_args.param);
-      pthread_mutex_unlock(&global_channel_mutex);
       if(channel_inf == NULL){
 	send_message(403, user_inf, NULL, cmd, &irc_args);/*no such channel*/
+	pthread_mutex_unlock(&global_channel_mutex);
 	goto error;
       }
       set_channel_topic(channel_inf, irc_args.trailing);
       irc_channel_msg* channel_msg = (irc_channel_msg *)malloc(sizeof(irc_channel_msg));
       if(channel_msg == NULL){
+	pthread_mutex_unlock(&global_channel_mutex);
 	goto error;
       }
       memset(channel_msg, 0, sizeof(*channel_msg));
