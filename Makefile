@@ -3,7 +3,7 @@ LDFLAGS = -lpthread
 
 SRCS = main.c list.c connect.c irc_getopt.c channel.c user.c command.c
 OBJS = $(SRCS:%.c=%.o)
-BIN = rlhsu_server
+BIN = bokchat
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $<
