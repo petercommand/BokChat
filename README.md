@@ -1,4 +1,4 @@
-###rlhsu irc server
+###BokChat server
 
 
 To compile the program, simply type 
@@ -7,7 +7,7 @@ make
 ```
 
 
-To run the progrm, type
+To run the program, type
 ```
 ./rlhsu_server -p 6667
 ```
