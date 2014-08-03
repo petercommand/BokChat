@@ -16,6 +16,17 @@ int nick_exist(char* user_nick, int* error_num){
   return 0;
 }
 
+user_info* user_exist_by_name(char* user_nick){
+  user_list* head;
+  for(head = global_user_list;head != NULL; head = head->next){
+    if(strcmp(head->user_info->user_nick, user_nick) == 0){
+      return head->user_info;
+    }
+  }
+  return NULL;
+}
+
+
 int nick_change(user_info* user_inf, char* user_nick, int* error_num){
   if(user_nick[0] == '\0'){
     *error_num = 431;

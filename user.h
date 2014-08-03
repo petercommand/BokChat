@@ -20,6 +20,7 @@ typedef struct user_info{
   time_t liveness;
 }user_info;
 int nick_exist(char* user_nick, int* error_num);
+user_info* user_exist_by_name(char* user_nick);
 int nick_change(user_info* user_info, char* user_nick, int* error_num);
 int quit_server(user_info* user_info, char* reason);
 int join_user_to_global_list(user_info* user_info);
