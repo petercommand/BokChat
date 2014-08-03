@@ -13,7 +13,7 @@
 #include <errno.h>
 #include <ctype.h>
 int get_cmd(int socket, char* buf, char* cmd, int* timeout);
-void client_connect_loop(int* sockfd_p);
+void irc_client_connect_loop(int* sockfd_p);
 void client_connect(user_info* user_inf);
 void liveness_check_loop();
 int init_user(user_info* user_inf, char* buf);
@@ -52,7 +52,7 @@ void start_server(int sockfd){
   memset(&sa, 0, sizeof(sa));
   sa.sa_handler = SIG_IGN;
   sigaction(SIGPIPE, &sa, 0);
-  pthread_create(&client_connect_thread, &client_connect_thread_attr, (void *(*)(void *))client_connect_loop, (void *)sockfd_p);
+  pthread_create(&client_connect_thread, &client_connect_thread_attr, (void *(*)(void *))irc_client_connect_loop, (void *)sockfd_p);
   pthread_create(&liveness_check_thread, &liveness_check_thread_attr, (void *(*)(void *))liveness_check_loop, NULL);
 
 
@@ -90,7 +90,7 @@ int listen_bind_on_port(int port){
   return sockfd;
   
 }
-void client_connect_loop(int* sockfd_p){
+void irc_client_connect_loop(int* sockfd_p){
   while(1){
     int sockfd = *sockfd_p;
     int client_socket = -1;
@@ -130,10 +130,10 @@ void client_connect(user_info* user_inf){
 /* user have to send in NICK and USER command to the server to init_user function, this function shall initialize everything in the user_info struct for the user. If init_user return non-zero value, disconnect the user immediately */
     goto error;
   }
-  snprintf(msg, MAX_BUFFER -3, ":Welcome to the rlhsu Internet Relay Chat Network %s", user_inf->user_nick);
+  snprintf(msg, MAX_BUFFER -3, ":Welcome to the bochat Internet Relay Chat Network %s", user_inf->user_nick);
   snprintf(msg2, MAX_BUFFER, "%s\r\n", msg);
   send_message_by_number(001, user_inf, msg2);
-  snprintf(msg, MAX_BUFFER, ":Your host is %s, running version rlhsu-1.0.0\r\n", SERVER_NAME);
+  snprintf(msg, MAX_BUFFER, ":Your host is %s, running version bochat-1.0.0\r\n", SERVER_NAME);
   send_message_by_number(002, user_inf, msg);
   motd(user_inf);
 
