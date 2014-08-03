@@ -23,7 +23,6 @@ void server_mutex_init();
 ssize_t irc_recv(int sockfd, void* buf, size_t len, int flags);
 ssize_t irc_send(int sockfd, const void *buf, size_t len, int flags);
 void trim_msg(char* buf, size_t len);
-int join_user_to_global_list(user_info* user_info);
 int process_cmd(user_cmd cmd_info, user_info* user_info);
 int process_cmd_nick_init(user_cmd cmd_info, user_info* user_inf);
 void reverse_dns(user_info* user_inf);

@@ -16,7 +16,6 @@
 irc_argument parse_argument(char* args);
 ssize_t irc_recv(int sockfd, void* buf, size_t len, int flags);
 ssize_t irc_send(int sockfd, const void *buf, size_t len, int flags);
-void to_upper_case(char* input);
 int null_terminated(char* input, int size);
 void names_command(user_info* user_inf, channel_info* channel_inf, irc_argument* irc_args);
 

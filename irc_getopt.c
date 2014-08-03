@@ -34,6 +34,7 @@ void get_server_opt(cmd_arg_opt* cmd_opt,int* argc, char** argv[]){
 	else{
 	  fprintf(stderr, "Unknown option character '\\x%x'.\n", optopt);
 	}
+	/* no break */
       default:
 	fprintf(stderr, "Error occurred while parsing cmd args. Quitting...\n");
 	exit(1);
