@@ -525,18 +525,7 @@ void send_message_to_user_in_list(list_msg* user_list_msg){/*remember to free in
     pthread_mutex_lock(&user_lst->user_info->sock_mutex);
     irc_send(user_lst->user_info->socket, buf, strlen(buf), MSG_DONTWAIT);
     pthread_mutex_unlock(&user_lst->user_info->sock_mutex);
-    if(user_lst->next != NULL){
-      user_lst = user_lst->next;
-      remove_node_from_user_list(&user_lst->priv, user_lst->priv->user_info);
-    }
-    else if(user_lst->priv != NULL){
-      user_lst = user_lst->priv;
-      remove_node_from_user_list(&user_lst->next, user_lst->next->user_info);
-    }
-    else{
-      remove_node_from_user_list(&user_lst, user_lst->user_info);
-      user_lst = NULL;
-    }
+    remove_node_from_user_list(&user_lst, user_lst->user_info);
   }
   free(user_list_msg);
 	     
