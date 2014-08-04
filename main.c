@@ -16,10 +16,10 @@ int main(int argc, char *argv[]){
   }
   if(argc < 2){
     printf(
-	   "Usage: %s -p port [-v] [-d]\n"
+	   "Usage: %s -i irc_port [-v] [-d]\n"
 	   "-v     :  This option enables verbose mode [Default: false]\n"
 	   "-d     :  This option tells the server to daemonize [Default: %s]\n"
-	   "-p port:  Specify the port for the irc server to listen\n"
+	   "-i port:  Specify the port for the irc server to listen\n"
 	   , argv[0], DAEMONIZE?"true":"false");
     exit(1);
   }
@@ -28,7 +28,7 @@ int main(int argc, char *argv[]){
   
   /*options: verbose daemonize host port*/
   if(cmd_opt.irc_port == 0){
-    fprintf(stderr, "No port specified. Use -p to specify a port for the irc server to listen\n");
+    fprintf(stderr, "No port specified. Use -i to specify a port for the irc server to listen\n");
     exit(1);
   }
   int sockfd;

@@ -12,7 +12,7 @@ void get_server_opt(cmd_arg_opt* cmd_opt,int* argc, char** argv[]){
   cmd_opt->irc_port = 0;
 
   int c;
-  while((c = getopt(*argc, *argv, "dvh:p:")) != -1){
+  while((c = getopt(*argc, *argv, "dvi:")) != -1){
     switch(c)
       {
       case 'd': /*daemon*/
@@ -21,11 +21,11 @@ void get_server_opt(cmd_arg_opt* cmd_opt,int* argc, char** argv[]){
       case 'v': /*verbose*/
 	cmd_opt->verbose = true;
 	break;
-      case 'p': /*port*/
+      case 'i': /*port*/
 	cmd_opt->irc_port = atoi(optarg);
 	break;
       case '?':
-	if (optopt == 'p'){
+	if (optopt == 'i'){
 	  fprintf(stderr, "Option -%c requires an argument.\n", optopt);
 	}
 	else if(isprint (optopt)){
