@@ -9,7 +9,7 @@ void get_server_opt(cmd_arg_opt* cmd_opt,int* argc, char** argv[]){
   cmd_opt->verbose = false;
   cmd_opt->daemonize = DAEMONIZE;
   cmd_opt->host = NULL;
-  cmd_opt->port = 0;
+  cmd_opt->irc_port = 0;
 
   int c;
   while((c = getopt(*argc, *argv, "dvh:p:")) != -1){
@@ -22,7 +22,7 @@ void get_server_opt(cmd_arg_opt* cmd_opt,int* argc, char** argv[]){
 	cmd_opt->verbose = true;
 	break;
       case 'p': /*port*/
-	cmd_opt->port = atoi(optarg);
+	cmd_opt->irc_port = atoi(optarg);
 	break;
       case '?':
 	if (optopt == 'p'){

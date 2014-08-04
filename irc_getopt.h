@@ -7,7 +7,7 @@ struct cmd_arg_opt {
   bool verbose;
   bool daemonize;
   char* host;
-  int port;
+  int irc_port;
 };
 typedef struct cmd_arg_opt cmd_arg_opt;
 void get_server_opt(cmd_arg_opt* cmd_opt_ptr,int* argc, char** argv[]);

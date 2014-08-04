@@ -19,7 +19,7 @@ int main(int argc, char *argv[]){
 	   "Usage: %s -p port [-v] [-d]\n"
 	   "-v     :  This option enables verbose mode [Default: false]\n"
 	   "-d     :  This option tells the server to daemonize [Default: %s]\n"
-	   "-p port:  Specify the port for the server to listen\n"
+	   "-p port:  Specify the port for the irc server to listen\n"
 	   , argv[0], DAEMONIZE?"true":"false");
     exit(1);
   }
@@ -27,12 +27,12 @@ int main(int argc, char *argv[]){
   get_server_opt(&cmd_opt, &argc, &argv);
   
   /*options: verbose daemonize host port*/
-  if(cmd_opt.port == 0){
-    fprintf(stderr, "No port specified. Use -p to specify a port for the server to listen\n");
+  if(cmd_opt.irc_port == 0){
+    fprintf(stderr, "No port specified. Use -p to specify a port for the irc server to listen\n");
     exit(1);
   }
   int sockfd;
-  if((sockfd = irc_listen_bind_on_port(cmd_opt.port)) == -1){
+  if((sockfd = irc_listen_bind_on_port(cmd_opt.irc_port)) == -1){
     fprintf(stderr, "Either binding or listening has failed\n%s\nQuitting...\n", strerror(errno));
     exit(1);
   }
