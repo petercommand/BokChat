@@ -65,7 +65,7 @@ void start_server(int sockfd){
 
 /* mutex lock sequence: user then channel*/
 
-int listen_bind_on_port(int port){
+int irc_listen_bind_on_port(int port){
 
   int sockfd;
 

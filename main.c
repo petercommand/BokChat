@@ -32,7 +32,7 @@ int main(int argc, char *argv[]){
     exit(1);
   }
   int sockfd;
-  if((sockfd = listen_bind_on_port(cmd_opt.port)) == -1){
+  if((sockfd = irc_listen_bind_on_port(cmd_opt.port)) == -1){
     fprintf(stderr, "Either binding or listening has failed\n%s\nQuitting...\n", strerror(errno));
     exit(1);
   }

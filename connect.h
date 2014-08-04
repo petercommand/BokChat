@@ -2,7 +2,7 @@
 #define CONNECT_H
 #include "config.h"
 #include "list.h"
-int listen_bind_on_port(int port);
+int irc_listen_bind_on_port(int port);
 void start_server(int sockfd);
 int valid_string(char* input);
 typedef struct struct_user_cmd{
