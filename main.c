@@ -1,5 +1,5 @@
 #include <time.h>
-#include "irc_getopt.h"
+#include "getopt.h"
 #include <unistd.h>
 #include "main.h"
 #include "config.h"

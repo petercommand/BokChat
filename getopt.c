@@ -1,4 +1,4 @@
-#include "irc_getopt.h"
+#include "getopt.h"
 #include <string.h>
 #include "main.h"
 #include "config.h"
