@@ -8,9 +8,9 @@ typedef struct irc_argument{
   char trailing[MAX_BUFFER];
 }irc_argument;
 typedef struct irc_channel_msg{
-  char message_type[10];
   channel_info* channel_info;
   user_info* user_inf;
+  char message_type[10];
   char msg_body[MAX_BUFFER];
 }irc_channel_msg;
 typedef struct list_msg{
