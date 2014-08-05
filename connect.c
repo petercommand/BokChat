@@ -16,7 +16,7 @@ int get_cmd(int socket, char* buf, char* cmd, int* timeout);
 static void irc_client_connect_loop(int* sockfd_p);
 void client_connect(user_info* user_inf);
 static void irc_user_liveness_check_loop();
-int init_user(user_info* user_inf, char* buf);
+int irc_init_user(user_info* user_inf, char* buf);
 int line_terminated(char* input, int size);
 user_cmd parse_cmd(char* cmd);
 void server_mutex_init();
@@ -126,7 +126,7 @@ void client_connect(user_info* user_inf){
   memset(buf, 0, MAX_BUFFER);
   memset(cmd, 0, MAX_BUFFER);
   memset(msg, 0, MAX_BUFFER);
-  if(init_user(user_inf, buf) != 0){
+  if(irc_init_user(user_inf, buf) != 0){
 /* user have to send in NICK and USER command to the server to init_user function, this function shall initialize everything in the user_info struct for the user. If init_user return non-zero value, disconnect the user immediately */
     goto error;
   }
@@ -330,7 +330,7 @@ void print_hex(char *input){
   }
 }
 
-int init_user(user_info* user_inf, char* buf){
+int irc_init_user(user_info* user_inf, char* buf){
   time_t start_time = time(NULL);
   int get_cmd_num;
   int nick = 0;

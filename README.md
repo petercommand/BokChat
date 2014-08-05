@@ -10,6 +10,6 @@ make
 
 To run the program, type
 ```
-./rlhsu_server -p 6667
+./rlhsu_server -i 6667
 ```
-where the number after -p specifies the port number to listen to
+where the number after -i specifies the port number to listen to
