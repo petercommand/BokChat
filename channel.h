@@ -4,11 +4,11 @@ typedef struct channel_info channel_info;
 #include "list.h"
 #include "command.h"
 typedef struct channel_info{
-  char channel_name[MAX_CHAN_NAME_LENGTH+1];
-  char topic[MAX_BUFFER+1];
   struct user_list* joined_users;
   int flags;
   struct user_list* channel_op;
+  char channel_name[MAX_CHAN_NAME_LENGTH+1];
+  char topic[MAX_BUFFER+1];
 }channel_info;
 
 int create_channel(channel_info* channel_info);
