@@ -193,9 +193,7 @@ static void irc_user_liveness_check_loop(){
       }
       else if(diff > 90){/*send ping cmd */
 	snprintf(msg, MAX_BUFFER, "PING :%s\r\n", SERVER_NAME);
-	pthread_mutex_lock(&head->user_info->sock_mutex);
-	irc_send(head->user_info->socket, msg, strlen(msg), MSG_DONTWAIT);
-	pthread_mutex_unlock(&head->user_info->sock_mutex);
+	send_message_to_user(head->user_info, msg);
       }
     }
     pthread_mutex_unlock(&global_user_mutex);
@@ -521,9 +519,7 @@ void send_message_to_user_in_list(list_msg* user_list_msg){/*remember to free in
   user_list* user_lst = user_list_msg->user_lst;
   char* buf = user_list_msg->msg_body;
   while(user_lst != NULL){
-    pthread_mutex_lock(&user_lst->user_info->sock_mutex);
-    irc_send(user_lst->user_info->socket, buf, strlen(buf), MSG_DONTWAIT);
-    pthread_mutex_unlock(&user_lst->user_info->sock_mutex);
+    send_message_to_user(user_lst->user_info, buf);
     remove_node_from_user_list(&user_lst, user_lst->user_info);
   }
   free(user_list_msg);
@@ -534,33 +530,25 @@ void send_message_to_user_in_list(list_msg* user_list_msg){/*remember to free in
 }
 
 void send_message_by_type(user_info* user_inf, const char* msg_type, char* msg_body){
-  int sockfd = user_inf->socket;
   char buf[MAX_BUFFER];
-  pthread_mutex_lock(&user_inf->sock_mutex);
   if(strcmp(msg_type, "NOTICE") == 0){
     snprintf(buf, sizeof(buf), ":%s NOTICE * :*** %s", SERVER_NAME, msg_body);
-    irc_send(sockfd, buf, strlen(buf), 0);
+    send_message_to_user(user_inf, buf);
     goto exit;
   }
   if(strcmp(msg_type, "MOTD") == 0){
     snprintf(buf, sizeof(buf), ":%s 372 :- %s", SERVER_NAME, msg_body);
-    irc_send(sockfd, buf, strlen(buf), 0);
+    send_message_to_user(user_inf, buf);
     goto exit;
   }
  exit:
-  pthread_mutex_unlock(&user_inf->sock_mutex);
   return;
   
 }
 void send_message_by_number(int num, user_info* user_inf, char* msg_body){
-  int sockfd = user_inf->socket;
   char msg[MAX_BUFFER];
   snprintf(msg, sizeof(msg), ":%s %03d %s %s", SERVER_NAME, num, user_inf->user_nick, msg_body);
-  pthread_mutex_lock(&user_inf->sock_mutex);
-  irc_send(sockfd, msg, strlen(msg), 0);
-  pthread_mutex_unlock(&user_inf->sock_mutex);
-
-
+  send_message_to_user(user_inf, msg);
 }
 
 
