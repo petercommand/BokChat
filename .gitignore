@@ -2,3 +2,5 @@
 *~
 *.o
 rlhsu_server
+.cproject
+.project
