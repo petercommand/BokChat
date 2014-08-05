@@ -10,14 +10,14 @@ typedef struct user_list user_list;
 typedef struct channel_list channel_list;
 typedef struct user_info{
   pthread_t user_thread;
-  char user_nick[MAX_NICK_LENGTH+1];
+  int priv;
+  time_t liveness;
   int socket;
   channel_list* joined_channels;
   pthread_mutex_t sock_mutex;
   struct sockaddr client_addr;
+  char user_nick[MAX_NICK_LENGTH+1];
   char hostname[NI_MAXHOST];
-  int priv;
-  time_t liveness;
 }user_info;
 int nick_exist(char* user_nick, int* error_num);
 user_info* user_exist_by_name(char* user_nick);
