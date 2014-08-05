@@ -13,9 +13,9 @@
 #include <errno.h>
 #include <ctype.h>
 int get_cmd(int socket, char* buf, char* cmd, int* timeout);
-void irc_client_connect_loop(int* sockfd_p);
+static void irc_client_connect_loop(int* sockfd_p);
 void client_connect(user_info* user_inf);
-void liveness_check_loop();
+static void irc_user_liveness_check_loop();
 int init_user(user_info* user_inf, char* buf);
 int line_terminated(char* input, int size);
 user_cmd parse_cmd(char* cmd);
@@ -25,7 +25,7 @@ ssize_t irc_send(int sockfd, const void *buf, size_t len, int flags);
 void trim_msg(char* buf, size_t len);
 int process_cmd(user_cmd cmd_info, user_info* user_info);
 int process_cmd_nick_init(user_cmd cmd_info, user_info* user_inf);
-void reverse_dns(user_info* user_inf);
+static void reverse_dns(user_info* user_inf);
 void send_message_by_type(user_info* user_inf, const char* msg_type, char* msg_body);
 void send_message_by_number(int num, user_info* user_inf, char* msg_body);
 void send_message(int error_num, user_info* user_inf, channel_info* channel_inf, char* cmd, irc_argument* irc_args);
@@ -53,7 +53,7 @@ void start_server(int sockfd){
   sa.sa_handler = SIG_IGN;
   sigaction(SIGPIPE, &sa, 0);
   pthread_create(&client_connect_thread, &client_connect_thread_attr, (void *(*)(void *))irc_client_connect_loop, (void *)sockfd_p);
-  pthread_create(&liveness_check_thread, &liveness_check_thread_attr, (void *(*)(void *))liveness_check_loop, NULL);
+  pthread_create(&liveness_check_thread, &liveness_check_thread_attr, (void *(*)(void *))irc_user_liveness_check_loop, NULL);
 
 
   while(1){
@@ -170,7 +170,7 @@ void client_connect(user_info* user_inf){
   pthread_exit(NULL);
 }
 
-void liveness_check_loop(){
+static void irc_user_liveness_check_loop(){
   user_list* head;
   user_list* temp;
   char msg[MAX_BUFFER];
@@ -407,7 +407,7 @@ int line_terminated(char* input, int size){
 
 
 
-void reverse_dns(user_info* user_inf){/*this function do reverse and forward dns to check client's hostname */
+static void reverse_dns(user_info* user_inf){/*this function do reverse and forward dns to check client's hostname */
   struct sockaddr client_addr = user_inf->client_addr;
   /*reverse dns*/
   struct addrinfo hints;
