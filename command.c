@@ -14,8 +14,6 @@
 
 
 irc_argument parse_argument(char* args);
-ssize_t irc_recv(int sockfd, void* buf, size_t len, int flags);
-ssize_t irc_send(int sockfd, const void *buf, size_t len, int flags);
 int null_terminated(char* input, int size);
 void names_command(user_info* user_inf, channel_info* channel_inf, irc_argument* irc_args);
 
@@ -359,9 +357,7 @@ int process_cmd(user_cmd cmd_info, user_info* user_inf){
     if(strcmp(irc_args.param, SERVER_NAME) == 0){/*client is pinging the server*/
       char buf[MAX_BUFFER];
       snprintf(buf, MAX_BUFFER, "PONG :%s\r\n", SERVER_NAME);
-      pthread_mutex_lock(&user_inf->sock_mutex);
-      irc_send(user_inf->socket, buf, strlen(buf), MSG_DONTWAIT);
-      pthread_mutex_unlock(&user_inf->sock_mutex);
+      send_message_to_user(user_inf, buf);
       goto exit;
     }
     goto error;
@@ -447,16 +443,11 @@ void names_command(user_info* user_inf, channel_info* channel_inf, irc_argument*
       }
     }
     snprintf(buf3, MAX_BUFFER, "%s\r\n", buf2);
-    pthread_mutex_lock(&user_inf->sock_mutex);
-    irc_send(user_inf->socket, buf3, strlen(buf3), MSG_DONTWAIT);
-    pthread_mutex_unlock(&user_inf->sock_mutex);
+    send_message_to_user(user_inf, buf3);
   }
   snprintf(buf, MAX_BUFFER -3, ":%s 366 %s %s :End of /NAMES list.", SERVER_NAME, user_inf->user_nick, channel_inf->channel_name);
   snprintf(buf2, MAX_BUFFER, "%s\r\n", buf);
-  pthread_mutex_lock(&user_inf->sock_mutex);
-  irc_send(user_inf->socket, buf2, strlen(buf2), MSG_DONTWAIT);
-  pthread_mutex_unlock(&user_inf->sock_mutex);
-
+  send_message_to_user(user_inf, buf2);
 }
 
 
