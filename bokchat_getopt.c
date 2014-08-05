@@ -1,4 +1,4 @@
-#include "getopt.h"
+#include "bokchat_getopt.h"
 #include <string.h>
 #include "main.h"
 #include "config.h"

@@ -1,5 +1,5 @@
-#ifndef IRC_GETOPT_H
-#define IRC_GET_OPT_H
+#ifndef BOKCHAT_GETOPT_H
+#define BOKCHAT_GETOPT_H
 
 #include <getopt.h>
 #include "main.h"

@@ -1,5 +1,5 @@
 #include <time.h>
-#include "getopt.h"
+#include "bokchat_getopt.h"
 #include <unistd.h>
 #include "main.h"
 #include "config.h"
