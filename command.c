@@ -1,5 +1,3 @@
-/* make change to the necessary structs and return the necessary data*/
-/*return int to reflect the result of command processing */
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
