@@ -8,6 +8,7 @@ struct cmd_arg_opt {
   bool daemonize;
   char* host;
   int irc_port;
+  int ssl_irc_port;
   bool help;
 };
 typedef struct cmd_arg_opt cmd_arg_opt;
