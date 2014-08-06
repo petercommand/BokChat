@@ -1,6 +1,9 @@
 #BokChat server
 
 ###Currently, it only serves as a simple irc server, I plan to expand it to accept other protocols as well.
+(under development)
+
+
 
 To compile the program, simply type 
 ```
