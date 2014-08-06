@@ -555,11 +555,11 @@ void send_message_by_number(int num, user_info* user_inf, char* msg_body){
 void motd(user_info* user_inf){
   char buf[MAX_BUFFER] = {0};
   int i;
-  char* motd[] = {"Welcome to rlhsu.cupcake.\r\n",
+  char* motd[] = {"Welcome to bokchat.cupcake.\r\n",
 		  "\r\n",
 		  "\r\n",
 		  "\r\n",
-		  "Welcome to rlhsu\r\n",
+		  "Welcome to BokChat\r\n",
 		  "By connecting to this server, you indicate that you\r\n",
 		  "have agreed the following terms set forth by the service owner\r\n",
 		  "Disclaimer:\r\n",
