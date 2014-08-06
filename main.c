@@ -28,18 +28,30 @@ int main(int argc, char *argv[]){
 	   , argv[0], DAEMONIZE?"true":"false");
     cmd_opt.help?exit(0):exit(1);
   }
+  if((cmd_opt.irc_port == 0) && (cmd_opt.ssl_irc_port == 0)){
+    fprintf(stderr, "No server option specified.\nQuitting...\n");
+    exit(1);
+  }
+  int irc_sockfd = -1;
   /*options: verbose daemonize host port*/
-  if(cmd_opt.irc_port == 0){
-    fprintf(stderr, "No port specified. Use -i to specify a port for the irc server to listen\n");
-    exit(1);
-  }
-  int sockfd;
-  if((sockfd = irc_listen_bind_on_port(cmd_opt.irc_port)) == -1){
-    fprintf(stderr, "Either binding or listening has failed\n%s\nQuitting...\n", strerror(errno));
-    exit(1);
-  }
+  if(cmd_opt.irc_port != 0){
 
+    irc_sockfd = irc_listen_bind_on_port(cmd_opt.irc_port);
+    if(irc_sockfd == -1){
+      fprintf(stderr, "Either binding or listening for irc has failed\n%s\nQuitting...\n", strerror(errno));
+      exit(1);
+     }
+  }
+  int ssl_irc_sockfd = -1;
+  if(cmd_opt.ssl_irc_port != 0){/*using ssl here*/
+    /*use ssl*/
+    ssl_irc_sockfd = irc_listen_bind_on_port(cmd_opt.ssl_irc_port);
+    if(ssl_irc_sockfd == -1){
+      fprintf(stderr, "Either binding or listening for ssl irc has failed\n%s\nQuitting...\n", strerror(errno));
+      exit(1);
+    }
+  }
   printf("Starting server...\n");
-  start_server(sockfd);
+  start_irc_server(irc_sockfd, ssl_irc_sockfd);
   return 0;
 }
