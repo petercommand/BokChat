@@ -13,6 +13,7 @@ typedef struct user_info{
   int priv;
   time_t liveness;
   int socket;
+  int ssl;
   channel_list* joined_channels;
   pthread_mutex_t sock_mutex;
   struct sockaddr client_addr;

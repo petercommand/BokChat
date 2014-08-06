@@ -32,7 +32,7 @@ void send_message(int error_num, user_info* user_inf, channel_info* channel_inf,
 void print_hex(char *input);
 void motd(user_info* user_inf);
 
-void start_server(int sockfd){
+void start_irc_server(int irc_sockfd, int ssl_irc_sockfd){
   server_mutex_init();
   pthread_t client_connect_thread;
   pthread_t liveness_check_thread;
@@ -47,7 +47,7 @@ void start_server(int sockfd){
     fprintf(stderr, "Failed to malloc: %s\n", strerror(errno));
     exit(1);
   }
-  *sockfd_p = sockfd;
+  *sockfd_p = irc_sockfd;
   struct sigaction sa;
   memset(&sa, 0, sizeof(sa));
   sa.sa_handler = SIG_IGN;
@@ -64,6 +64,9 @@ void start_server(int sockfd){
 }
 
 /* mutex lock sequence: user then channel*/
+
+
+
 
 int irc_listen_bind_on_port(int port){
 
@@ -555,11 +558,11 @@ void send_message_by_number(int num, user_info* user_inf, char* msg_body){
 void motd(user_info* user_inf){
   char buf[MAX_BUFFER] = {0};
   int i;
-  char* motd[] = {"Welcome to rlhsu.cupcake.\r\n",
+  char* motd[] = {"Welcome to bokchat.cupcake.\r\n",
 		  "\r\n",
 		  "\r\n",
 		  "\r\n",
-		  "Welcome to rlhsu\r\n",
+		  "Welcome to BokChat\r\n",
 		  "By connecting to this server, you indicate that you\r\n",
 		  "have agreed the following terms set forth by the service owner\r\n",
 		  "Disclaimer:\r\n",

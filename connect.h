@@ -3,7 +3,7 @@
 #include "config.h"
 #include "list.h"
 int irc_listen_bind_on_port(int port);
-void start_server(int sockfd);
+void start_irc_server(int irc_sockfd, int ssl_irc_sockfd);
 int valid_string(char* input);
 typedef struct struct_user_cmd{
   char cmd[MAX_BUFFER];

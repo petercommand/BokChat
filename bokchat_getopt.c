@@ -10,10 +10,11 @@ void get_server_opt(cmd_arg_opt* cmd_opt,int* argc, char** argv[]){
   cmd_opt->daemonize = DAEMONIZE;
   cmd_opt->host = NULL;
   cmd_opt->irc_port = 0;
+  cmd_opt->ssl_irc_port = 0;
   cmd_opt->help = 0;
 
   int c;
-  while((c = getopt(*argc, *argv, "dvhi:")) != -1){
+  while((c = getopt(*argc, *argv, "dvhi:j:")) != -1){
     switch(c)
       {
       case 'd': /*daemon*/
@@ -22,8 +23,11 @@ void get_server_opt(cmd_arg_opt* cmd_opt,int* argc, char** argv[]){
       case 'v': /*verbose*/
 	cmd_opt->verbose = true;
 	break;
-      case 'i': /*port*/
+      case 'i': /*irc port*/
 	cmd_opt->irc_port = atoi(optarg);
+	break;
+      case 'j': /*ssl irc port*/
+	cmd_opt->ssl_irc_port = atoi(optarg);
 	break;
       case 'h': /*help*/
 	cmd_opt->help = true;
