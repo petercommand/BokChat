@@ -155,7 +155,9 @@ void client_connect(user_info* user_inf){
     }
 
     user_cmd cmd_info = parse_cmd(cmd);   
-    printf("cmd_info->cmd:%s\ncmd_info->args:%s\n", cmd_info.cmd, cmd_info.args);   
+    if(0){/*debug*/
+      printf("cmd_info->cmd:%s\ncmd_info->args:%s\n", cmd_info.cmd, cmd_info.args);
+    }
     if(process_cmd(cmd_info, user_inf) == -2){
       pthread_mutex_unlock(&global_user_mutex);
       goto quit;
@@ -189,7 +191,9 @@ static void irc_user_liveness_check_loop(){
 	temp = NULL;
       }
       diff = time(NULL) - head->user_info->liveness;
-      printf("liveness thread: time difference: %ld\n", diff);
+      if(0){/*debug*/
+	 printf("liveness thread: time difference: %ld\n", diff);
+      }
       if(diff > 270){/* user timeout */
 	snprintf(msg, MAX_BUFFER, "Ping timeout: %ld seconds\r\n", diff);
 	quit_server(head->user_info, msg);
@@ -248,8 +252,10 @@ int get_cmd(int socket, char* buf, char* cmd, int* timeout){
   strncat(buf, recv_cmd, MAX_BUFFER-strlen(buf)-1);
  cont:
   term_buf2 = line_terminated(buf, MAX_BUFFER);
-  printf("buf: %s\n", buf);
-  printf("term_buf: %d\n", term_buf2);
+  if(0){/*debug*/
+    printf("buf: %s\n", buf);
+    printf("term_buf: %d\n", term_buf2);
+  }
   if(term_buf2 == -1){
     /* truncate and clear buf here */
     buf[MAX_BUFFER-1] = '\0';
@@ -358,7 +364,9 @@ int irc_init_user(user_info* user_inf, char* buf){
     }
     if((cmd != NULL) && (cmd[0] != '\0')){
       cmd_info = parse_cmd(cmd);
-      printf("cmd_info->cmd:%s\ncmd_info->args:%s\n", cmd_info.cmd, cmd_info.args);
+      if(0){/*debug*/
+	 printf("cmd_info->cmd:%s\ncmd_info->args:%s\n", cmd_info.cmd, cmd_info.args);
+      }
       /*put user into global user list after first nick command as we find user by nick */
       if(strcmp(cmd_info.cmd, "NICK") == 0){
 	if(process_cmd_nick_init(cmd_info, user_inf) == 0){
