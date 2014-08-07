@@ -24,7 +24,7 @@ int main(int argc, char *argv[]){
 	   "-v     :  This option enables verbose mode [Default: false]\n"
 	   "-d     :  This option tells the server to daemonize [Default: %s]\n"
 	   "-i port:  Specify the port for the irc server to listen\n"
-	   "-j port:  Specify the port for the irc server with ssl to listen\n"
+	   "-j port:  Specify the port for the irc server with ssl to listen (not finished yet, don't use it)\n"
 	   , argv[0], DAEMONIZE?"true":"false");
     cmd_opt.help?exit(0):exit(1);
   }
