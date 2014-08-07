@@ -417,6 +417,7 @@ int line_terminated(char* input, int size){
 
 
 static void reverse_dns(user_info* user_inf){/*this function do reverse and forward dns to check client's hostname */
+  /*only this thread can access user's hostname field when this thread is active, so there is no need to lock*/
   struct sockaddr client_addr = user_inf->client_addr;
   /*reverse dns*/
   struct addrinfo hints;
