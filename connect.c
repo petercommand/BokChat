@@ -595,7 +595,7 @@ void motd(user_info* user_inf){
 		  "This server is the first project I ever\r\n",
 		  "made in the C language\r\n",
 		  "If there are any problem with my server,\r\n",
-		  "please email to me.\r\n",
+		  "please open an issue on github.\r\n",
 		  "May you have a good time on this server!\r\n"
   };
   snprintf(buf, sizeof(buf), ":- %s Message of the Day -\r\n", SERVER_NAME);
