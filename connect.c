@@ -129,6 +129,7 @@ void client_connect(user_info* user_inf){
   memset(buf, 0, MAX_BUFFER);
   memset(cmd, 0, MAX_BUFFER);
   memset(msg, 0, MAX_BUFFER);
+  memset(msg2, 0, MAX_BUFFER);
   if(irc_init_user(user_inf, buf) != 0){
 /* user have to send in NICK and USER command to the server to init_user function, this function shall initialize everything in the user_info struct for the user. If init_user return non-zero value, disconnect the user immediately */
     goto error;
