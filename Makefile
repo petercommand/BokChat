@@ -1,4 +1,4 @@
-CFLAGS  = -g -Wall -O2 -pthread --std=c11
+CFLAGS  = -Wall -O2 -pthread --std=c11
 LDFLAGS = -lpthread
 
 SRCS = main.c list.c connect.c bokchat_getopt.c channel.c user.c command.c
