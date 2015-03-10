@@ -2,6 +2,7 @@
 #include <string.h>
 #include "main.h"
 #include "config.h"
+#include <ctype.h>
 
 void get_server_opt(cmd_arg_opt* cmd_opt,int* argc, char** argv[]){
 

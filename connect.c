@@ -343,16 +343,15 @@ int irc_init_user(user_info* user_inf, char* buf){
   int get_cmd_num;
   int nick = 0;
   int user = 0;
+  int user_dns_init = 0;
   char* cmd = (char *)malloc(MAX_BUFFER);
   if(cmd == NULL){
     goto error;
   }
+  pthread_t user_dns;
   user_cmd cmd_info;
   memset(&cmd_info, 0, sizeof(cmd_info));
-  if(cmd == NULL){
-    goto error;
-  }
-  pthread_t user_dns;
+  user_dns_init = 1;
   pthread_create(&user_dns, NULL, (void *(*)(void *))reverse_dns, (void *)user_inf);
   while((nick == 0) || (user == 0)){
     int timeout = 15;
@@ -400,7 +399,9 @@ int irc_init_user(user_info* user_inf, char* buf){
   return 0;/* user and nick commands are both set to 1: ready to go*/
  error:
   free(cmd);
-  pthread_join(user_dns, NULL);
+  if(user_dns_init == 1){
+    pthread_join(user_dns, NULL);
+  }
   return -1;
 }
 int line_terminated(char* input, int size){
