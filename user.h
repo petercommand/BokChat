@@ -7,6 +7,10 @@
 #include <pthread.h>
 #include "config.h"
 #include <netdb.h>
+#ifndef NI_MAXHOST
+#define NI_MAXHOST 1025
+#endif
+
 typedef struct user_list user_list;
 typedef struct channel_list channel_list;
 typedef struct user_info{
