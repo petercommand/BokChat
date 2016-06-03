@@ -412,7 +412,7 @@ int irc_init_user(user_info* user_inf, char* buf){
 }
 int is_filled(char* input, int size){
   int i;
-  for(i = 0;i < size;i++){
+  for(i = 0;i < size - 1;i++){
     if(input[i] == '\0') {
       return 0;
     }
