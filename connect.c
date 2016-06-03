@@ -419,7 +419,7 @@ int is_filled(char* input, int size){
     }
   }
   if(input[size - 1] != '\0') {
-    return 2
+    return 2;
   }
   return 1;
 }
