@@ -18,6 +18,7 @@ void client_connect(user_info* user_inf);
 static void irc_user_liveness_check_loop();
 int irc_init_user(user_info* user_inf, char* buf);
 int line_terminated(char* input, int size);
+int is_filled(char* input, int size);
 user_cmd parse_cmd(char* cmd);
 void server_mutex_init();
 ssize_t irc_recv(int sockfd, void* buf, size_t len, int flags);
@@ -258,11 +259,16 @@ int get_cmd(int socket, char* buf, char* cmd, int* timeout){
     printf("term_buf: %d\n", term_buf2);
   }
   if(term_buf2 == -1){
-    /* truncate and clear buf here */
-    buf[MAX_BUFFER-1] = '\0';
-    strncpy(cmd, buf, MAX_BUFFER);
-    memset(buf, 0, sizeof(&buf));
-    return 0;
+    if(!is_filled(buf, MAX_BUFFER)) {
+      return -2;
+    }
+    else{ 
+      /* truncate and clear buf here */
+      buf[MAX_BUFFER-1] = '\0';
+      strncpy(cmd, buf, MAX_BUFFER);
+      memset(buf, 0, sizeof(&buf));
+      return 0;
+    }
   }
   buf[term_buf2] = '\0';
   strncpy(cmd, buf, MAX_BUFFER);
@@ -404,6 +410,16 @@ int irc_init_user(user_info* user_inf, char* buf){
   }
   return -1;
 }
+int is_filled(char* input, int size){
+  int i;
+  for(i = 0;i < size;i++){
+    if(input[i] == '\0') {
+      return 0;
+    }
+  }
+  return 1;
+}
+
 int line_terminated(char* input, int size){
   int i;
   int result = -1;
