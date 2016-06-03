@@ -259,10 +259,11 @@ int get_cmd(int socket, char* buf, char* cmd, int* timeout){
     printf("term_buf: %d\n", term_buf2);
   }
   if(term_buf2 == -1){
-    if(!is_filled(buf, MAX_BUFFER)) {
+    let filled = is_filled(buf, MAX_BUFFER);
+    if(!filled) {
       return -2;
     }
-    else{ 
+    else{
       /* truncate and clear buf here */
       buf[MAX_BUFFER-1] = '\0';
       strncpy(cmd, buf, MAX_BUFFER);
@@ -416,6 +417,9 @@ int is_filled(char* input, int size){
     if(input[i] == '\0') {
       return 0;
     }
+  }
+  if(input[size - 1] != '\0') {
+    return 2
   }
   return 1;
 }
