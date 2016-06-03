@@ -259,7 +259,7 @@ int get_cmd(int socket, char* buf, char* cmd, int* timeout){
     printf("term_buf: %d\n", term_buf2);
   }
   if(term_buf2 == -1){
-    let filled = is_filled(buf, MAX_BUFFER);
+    int filled = is_filled(buf, MAX_BUFFER);
     if(!filled) {
       return -2;
     }
